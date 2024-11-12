@@ -1,43 +1,56 @@
+ // Start of Selection
 # Tweet-Scrolls: Twitter Thread Archiver
 
 ## Introduction
-Tweet-Scrolls is a Rust-based tool designed to process and organize Twitter JSON data files into coherent threads. It efficiently extracts, filters, and sorts tweets, providing a comprehensive view of Twitter conversations.
+Tweet-Scrolls is a Rust tool that processes Twitter JSON data into organized threads. It uses asynchronous operations to efficiently extract, filter, and sort tweets, providing a clear view of Twitter conversations.
 
 ## Features
-- Extracts and organizes tweet threads from JSON files.
-- Filters out retweets and irrelevant replies.
-- Sorts threads in reverse chronological order.
-- Outputs data in CSV and TXT formats within a dedicated output directory.
-- Provides a detailed operation summary.
+- **Async Processing:** Leveraging Tokio for efficient, non-blocking I/O.
+- **Thread Extraction:** Organizes tweet threads based on conversation flows.
+- **Filtering:** Removes retweets and irrelevant replies.
+- **Chronological Sorting:** Orders threads newest first.
+- **Concurrent CSV Writing:** Buffered channels for efficient data output.
+- **Reporting:** Generates operation summaries and thread metrics.
+- **Memory Efficiency:** Utilizes Mimalloc for optimized memory usage.
 
 ## Installation
-To build and run Tweet-Scrolls, ensure you have Rust and Cargo installed. You can install Rust using [rustup](https://rustup.rs/).
+Ensure Rust and Cargo are installed. Install Rust via [rustup](https://rustup.rs/).
+
+```bash
+cargo build --release
+```
+
+## Usage
+Run the application and follow the prompts for the JSON file path and Twitter handle.
+
+```bash
+cargo run --release
+```
 
 ## Output
-- All output files are stored in a directory named `output_<handle>_<timestamp>` located in the same directory as the input file.
-- `threads_<handle>_<timestamp>.csv`: CSV file with thread metrics and full text.
-- `threads_<handle>_<timestamp>.txt`: TXT file with formatted thread content.
-- `results_<handle>_<timestamp>.txt`: TXT file with operation summary and stats.
+Outputs are stored in `output_<handle>_<timestamp>` in the input file directory.
 
-## Technologies Used
-- Rust
-- Tokio for asynchronous I/O
-- Serde for JSON parsing
-- CSV for data output
-- Mimalloc for memory efficiency
+- `threads_<handle>_<timestamp>.csv`: Thread metrics and full text.
+- `threads_<handle>_<timestamp>.txt`: Formatted thread content.
+- `results_<handle>_<timestamp>.txt`: Operation statistics and summary.
+
+## Technologies
+- **Rust**
+- **Tokio**
+- **Serde**
+- **CSV**
+- **Mimalloc**
 
 ## Contributing
-Contributions are welcome! Please fork the repository and submit a pull request.
-
 1. Fork the project.
-2. Create a new branch: `git checkout -b feature-branch`.
-3. Make your changes.
-4. Commit your changes: `git commit -m 'Add some feature'`.
-5. Push to the branch: `git push origin feature-branch`.
+2. Create a branch: `git checkout -b feature-branch`.
+3. Make changes.
+4. Commit: `git commit -m 'Add feature'`.
+5. Push: `git push origin feature-branch`.
 6. Open a pull request.
 
 ## License
 WIP
 
 ## Acknowledgments
-Special thanks to the Rust community for their invaluable resources and support.
+Thanks to the Rust community for their support.
