@@ -20,10 +20,11 @@ Product Requirements Document
 - Handle UTF-8 text and emoji content
 
 4. Output Generation
-- Generate three output files per run:
-  * CSV file with thread metrics and full text (threads_<handle>_<timestamp>.csv)
-  * TXT file with formatted thread content (threads_<handle>_<timestamp>.txt)
-  * TXT file with operation summary/stats (results_<handle>_<timestamp>.txt)
+- Create a dedicated output directory for each run: `output_<handle>_<timestamp>`
+- Generate three output files per run within the output directory:
+  * CSV file with thread metrics and full text (`threads_<handle>_<timestamp>.csv`)
+  * TXT file with formatted thread content (`threads_<handle>_<timestamp>.txt`)
+  * TXT file with operation summary/stats (`results_<handle>_<timestamp>.txt`)
 
 5. Performance Features
 - Asynchronous I/O operations using tokio

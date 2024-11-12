@@ -7,13 +7,14 @@ Tweet-Scrolls is a Rust-based tool designed to process and organize Twitter JSON
 - Extracts and organizes tweet threads from JSON files.
 - Filters out retweets and irrelevant replies.
 - Sorts threads in reverse chronological order.
-- Outputs data in CSV and TXT formats.
+- Outputs data in CSV and TXT formats within a dedicated output directory.
 - Provides a detailed operation summary.
 
 ## Installation
 To build and run Tweet-Scrolls, ensure you have Rust and Cargo installed. You can install Rust using [rustup](https://rustup.rs/).
 
 ## Output
+- All output files are stored in a directory named `output_<handle>_<timestamp>` located in the same directory as the input file.
 - `threads_<handle>_<timestamp>.csv`: CSV file with thread metrics and full text.
 - `threads_<handle>_<timestamp>.txt`: TXT file with formatted thread content.
 - `results_<handle>_<timestamp>.txt`: TXT file with operation summary and stats.

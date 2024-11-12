@@ -5,6 +5,7 @@ use serde_json::from_str;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufWriter, Write};
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 use tokio::fs as async_fs;
 use tokio::sync::mpsc;
@@ -18,6 +19,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 async fn main() -> Result<()> {
     let input_file = get_input_file()?;
     let screen_name = get_screen_name()?;
+    let timestamp = Utc::now().timestamp();
 
     println!("🕶️ Current working directory: {}", std::env::current_dir()?.display());
 
@@ -25,15 +27,20 @@ async fn main() -> Result<()> {
         anyhow::bail!("❌ File does not exist: {}", input_file);
     }
 
+    // Create output directory
+    let input_path = Path::new(&input_file);
+    let output_dir = input_path.parent().unwrap().join(format!("output_{}_{}", screen_name, timestamp));
+    async_fs::create_dir_all(&output_dir).await.context("Failed to create output directory")?;
+
     // Create a channel for CsvWriter
     let (tx, rx) = mpsc::channel::<Vec<String>>(100);
 
     // Initialize CsvWriter and spawn its run task
-    let csv_writer = CsvWriter::new(format!("threads_{}_{}.csv", screen_name, Utc::now().timestamp()), rx, 100);
+    let csv_writer = CsvWriter::new(output_dir.join(format!("threads_{}_{}.csv", screen_name, timestamp)).to_str().unwrap().to_string(), rx, 100);
     tokio::spawn(csv_writer.run());
 
     println!("🌟 Avengers, assemble! Initiating Operation: Tweet Processing...");
-    if let Err(e) = process_tweets(&input_file, &screen_name, tx).await {
+    if let Err(e) = process_tweets(&input_file, &screen_name, tx, &output_dir, timestamp).await {
         eprintln!("🚨 Mission Failed: {}", e);
     } else {
         println!("🎉 Victory! Tweets have been successfully processed and organized.");
@@ -138,7 +145,7 @@ impl CsvWriter {
     }
 }
 
-pub async fn process_tweets(input_file: &str, screen_name: &str, csv_tx: mpsc::Sender<Vec<String>>) -> Result<()> {
+pub async fn process_tweets(input_file: &str, screen_name: &str, csv_tx: mpsc::Sender<Vec<String>>, output_dir: &Path, timestamp: i64) -> Result<()> {
     let screen_name = screen_name.to_string(); // Clone to own the String
 
     let start_datetime = Local::now();
@@ -206,7 +213,7 @@ pub async fn process_tweets(input_file: &str, screen_name: &str, csv_tx: mpsc::S
     }).collect();
 
     // Handle writing to files
-    write_threads_to_file(&threads, &screen_name, timestamp).await?;
+    write_threads_to_file(&threads, &screen_name, timestamp, output_dir).await?;
     write_csv(&threads, &screen_name, timestamp, csv_tx).await?;
 
     let end_datetime = Local::now();
@@ -233,15 +240,15 @@ pub async fn process_tweets(input_file: &str, screen_name: &str, csv_tx: mpsc::S
         duration.as_secs_f64()
     );
 
-    let results_file_path = format!("results_{}_{}.txt", screen_name, timestamp);
+    let results_file_path = output_dir.join(format!("results_{}_{}.txt", screen_name, timestamp));
     async_fs::write(&results_file_path, results_content).await.context("Failed to write results file")?;
     println!("📊 Final mission report filed. Operation summary complete!");
 
     Ok(())
 }
 
-async fn write_threads_to_file(threads: &[Thread], screen_name: &str, timestamp: i64) -> Result<()> {
-    let file_path = format!("threads_{}_{}.txt", screen_name, timestamp);
+async fn write_threads_to_file(threads: &[Thread], screen_name: &str, timestamp: i64, output_dir: &Path) -> Result<()> {
+    let file_path = output_dir.join(format!("threads_{}_{}.txt", screen_name, timestamp));
     let file = File::create(&file_path)?;
     let mut writer = BufWriter::new(file);
 
