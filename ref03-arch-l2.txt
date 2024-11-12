@@ -1,0 +1,187 @@
+1. Data Flow Diagram
+------------------
+
+Input → Processing → Output
+┌─────────┐   ┌─────────┐   ┌─────────┐
+│  JSON   │   │ Memory  │   │  Files  │
+│  File   │ → │ Structs │ → │ (3 fmt) │
+└─────────┘   └─────────┘   └─────────┘
+     ↓            ↓             ↑
+┌─────────┐   ┌─────────┐   ┌─────────┐
+│ Buffer  │   │  Tweet  │   │ Buffer  │
+│ Reader  │ → │  Vec    │ → │ Writer  │
+└─────────┘   └─────────┘   └─────────┘
+                   ↓
+              ┌─────────┐
+              │ Thread  │
+              │  Vec    │
+              └─────────┘
+
+2. Control Flow & Memory Layout
+----------------------------
+
+Main Process
+┌─────────────────────────────────┐
+│           main.rs               │
+│  ┌─────────┐     ┌─────────┐   │
+│  │ Config  │     │ Metrics │   │
+│  └─────────┘     └─────────┘   │
+│         ↓            ↑         │
+│    ┌─────────────────┐         │
+│    │  Processor      │         │
+│    └─────────────────┘         │
+└─────────────────────────────────┘
+           │     │     │
+           ↓     ↓     ↓
+    ┌─────┴─┐ ┌─┴─┐ ┌─┴─────┐
+    │Models │ │I/O│ │Export │
+    └───────┘ └───┘ └───────┘
+
+Memory Layout
+┌─────────────────┐
+│    Heap         │
+│  ┌─────────┐    │      ┌──────────┐
+│  │ Tweets  │    │      │  Stack   │
+│  │ ┌─┐ ┌─┐ │    │      │ ┌──────┐ │
+│  │ │T│ │T│ │    │      │ │Config│ │
+│  │ └─┘ └─┘ │    │      │ └──────┘ │
+│  └─────────┘    │      └──────────┘
+└─────────────────┘
+
+Thread Building
+┌─────────┐
+│ Root    │
+│ Tweet   │──┐
+└─────────┘  │
+  ┌──────────┘
+  ↓
+┌─────────┐
+│ Reply 1 │──┐
+└─────────┘  │
+  ┌──────────┘
+  ↓
+┌─────────┐
+│ Reply 2 │
+└─────────┘
+
+Export Channels
+Producer    Channel     Consumer
+┌─────┐    ┌─────┐    ┌─────┐
+│     │ →→ │████ │ →→ │     │
+└─────┘    └─────┘    └─────┘
+ Tweet      Buffer     Writer
+
+Error Propagation
+┌─────────┐
+│ Result  │
+│  ┌───┐  │   ┌─────┐
+│  │Err│──┼──→│Match│
+│  └───┘  │   └─────┘
+└─────────┘      │
+                 ↓
+            ┌─────────┐
+            │ Context │
+            └─────────┘
+
+
+1. Detailed Data Flow
+-------------------
+
+JSON Input → Processing Pipeline → Multi-Format Output
+┌─────────┐   ┌───────────────────┐   ┌─────────────────┐
+│  JSON   │   │ Memory Pipeline   │   │ Output Formats  │
+│  File   │   │ ┌─────┐ ┌─────┐  │   │ ┌─────┐ ┌─────┐│
+│ (32KB   │ → │ │Parse│→│Build│  │ → │ │ CSV │ │Text ││
+│ Buffer) │   │ └─────┘ └─────┘  │   │ └─────┘ └─────┘│
+└─────────┘   └───────────────────┘   └─────────────────┘
+     ↓              ↓      ↓                   ↑
+┌─────────┐   ┌─────────┐  ┌─────────┐   ┌─────────────┐
+│BufReader│   │TweetVec │  │ThreadVec│   │ BufWriter   │
+│(32KB)   │ → │Validate │→ │Filter   │ → │ (8KB)      │
+└─────────┘   └─────────┘  └─────────┘   └─────────────┘
+                   ↓            ↓
+              ┌─────────┐  ┌─────────┐
+              │HashMap  │→ │Sort By  │
+              │by ID    │  │DateTime │
+              └─────────┘  └─────────┘
+
+2. Memory Management & Buffering
+-----------------------------
+Heap Layout                Stack Layout
+┌────────────────┐        ┌────────────┐
+│ Tweet Vector   │        │ Configs    │
+│ ┌──┐ ┌──┐ ┌──┐│        │┌────────┐  │
+│ │T1│ │T2│ │T3││        ││Buffer  │  │
+│ └──┘ └──┘ └──┘│        ││Sizes   │  │
+├────────────────┤        │└────────┘  │
+│ Thread Vector  │        │            │
+│ ┌─────────┐   │        │┌────────┐  │
+│ │Vec<Tweet>│   │        ││Export  │  │
+│ └─────────┘   │        ││Config  │  │
+└────────────────┘        └────────────┘
+
+3. Async Channel Architecture
+--------------------------
+Producer (Process)    Channel (MPSC)     Consumer (Write)
+┌─────────────┐      ┌──────────┐      ┌────────────┐
+│Tweet Process│ →→→→ │ Bounded  │ →→→→ │CSV Writer  │
+│(Main Thread)│      │ Buffer   │      │(Async Task)│
+└─────────────┘      └──────────┘      └────────────┘
+      ↓                   ↓                  ↓
+┌─────────────┐      ┌──────────┐      ┌────────────┐
+│Memory Usage │      │Batch Size│      │File Buffer │
+│(32KB chunks)│      │(1000)    │      │(8KB)      │
+└─────────────┘      └──────────┘      └────────────┘
+
+4. Error Propagation Chain
+-----------------------
+┌─────────┐    ┌─────────┐    ┌─────────┐
+│TweetErr │ →  │AnyhowErr│ →  │Context  │
+├─────────┤    ├─────────┤    ├─────────┤
+│Validate │    │Process  │    │Display  │
+│Date     │ →  │I/O     │ →  │User     │
+│Format   │    │Channel  │    │Message  │
+└─────────┘    └─────────┘    └─────────┘
+
+5. Configuration Hierarchy
+-----------------------
+┌─────────────────────────┐
+│     Config Module       │
+├───────────┬─────────┬───┤
+│ Buffer    │ Thread  │Exp│
+│ JSON: 32K │ Min: 1  │CSV│
+│ File: 8K  │ Max:100 │TXT│
+└───────────┴─────────┴───┘
+
+6. Cross-Platform Memory Utils
+---------------------------
+┌─────────┐   ┌─────────┐   ┌─────────┐
+│ Linux   │   │Windows  │   │ MacOS   │
+│/proc/   │   │Win32API │   │mach API │
+└────┬────┘   └────┬────┘   └────┬────┘
+     └──────────┬──────────────┘
+          ┌─────┴─────┐
+          │Unified API│
+          └───────────┘
+
+7. Thread Building Process
+-----------------------
+Root Tweet
+    │
+    ▼
+┌─────────┐
+│Find Root│
+│Tweet    │──┐
+└─────────┘  │
+  ┌──────────┘
+  ▼
+┌─────────┐
+│Follow   │──┐
+│Replies  │  │
+└─────────┘  │
+  ┌──────────┘
+  ▼
+┌─────────┐
+│Sort By  │
+│DateTime │
+└─────────┘

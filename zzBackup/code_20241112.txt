@@ -1,0 +1,880 @@
+-e 
+
+=== src/config.rs ===
+
+// Centralized configuration
+pub mod buffer {
+    pub const JSON_BUFFER: usize = 32 * 1024;  // 32KB
+    pub const FILE_BUFFER: usize = 8 * 1024;   // 8KB
+    pub const CSV_BATCH: usize = 1000;         // Records
+    pub const PROGRESS_INTERVAL: usize = 1000;  // Status updates
+}
+
+pub mod thread {
+    #[derive(Debug, Clone, Copy)]
+    pub enum SortOrder {
+        NewestFirst,
+        OldestFirst,
+    }
+
+    pub const MIN_LENGTH: usize = 1;
+    pub const MAX_LENGTH: usize = 100;
+}
+
+pub mod export {
+    pub const CSV_DELIMITER: char = ',';
+    pub const TEXT_DELIMITER: char = '\n';
+    pub const BATCH_SIZE: usize = 100;
+} -e 
+
+=== src/lib.rs ===
+
+//! Tweet-Scrolls: A Twitter Thread Archiver
+//! 
+//! This library processes Twitter JSON data files to extract and organize tweet threads.
+//! It supports:
+//! - Thread building and sorting
+//! - Multiple output formats (CSV, Text, Summary)
+//! - Progress tracking
+//! - Memory-efficient processing
+//! - Cross-platform memory stats
+
+/// Process Twitter JSON data and export organized threads
+#[doc(inline)]
+pub use services::process_tweets;
+
+/// Configuration for thread building and processing
+#[doc(inline)]
+pub use services::ThreadConfig;
+
+/// Writer for CSV output format
+#[doc(inline)]
+pub use exporters::CsvWriter;-e 
+
+=== src/exporters/config.rs ===
+
+use crate::config::{buffer, export};
+
+pub struct ExporterConfig {
+    pub buffer_size: usize,
+    pub delimiter: char,
+    pub batch_size: usize,
+}
+
+impl Default for ExporterConfig {
+    fn default() -> Self {
+        Self {
+            buffer_size: buffer::FILE_BUFFER,
+            delimiter: export::TEXT_DELIMITER,
+            batch_size: export::BATCH_SIZE,
+        }
+    }
+}
+
+impl ExportConfig for ExporterConfig {
+    fn buffer_size(&self) -> usize {
+        self.buffer_size
+    }
+
+    fn delimiter(&self) -> char {
+        self.delimiter
+    }
+
+    fn batch_size(&self) -> usize {
+        self.batch_size
+    }
+} -e 
+
+=== src/exporters/csv.rs ===
+
+use anyhow::{Context, Result};
+use csv::Writer as CsvWriterLib;
+use std::fs::File;
+use std::io::BufWriter;
+use tokio::sync::mpsc;
+use crate::models::Thread;
+use crate::exporters::ExporterConfig;
+use chrono::DateTime;
+use crate::config::buffer::{FILE_BUFFER, CSV_BATCH};
+
+pub struct CsvWriter {
+    output_path: String,
+    receiver: mpsc::Receiver<Vec<String>>,
+    config: ExporterConfig,
+}
+
+impl CsvWriter {
+    pub fn new(output_path: String, receiver: mpsc::Receiver<Vec<String>>) -> Self {
+        Self {
+            output_path,
+            receiver,
+            config: ExporterConfig::default(),
+        }
+    }
+
+    pub async fn run(mut self) -> Result<()> {
+        let file = File::create(&self.output_path)
+            .with_context(|| format!("Failed to create file: {}", self.output_path))?;
+        
+        let buf_writer = BufWriter::with_capacity(
+            self.config.buffer_size,
+            file
+        );
+        let mut writer = CsvWriterLib::from_writer(buf_writer)
+            .delimiter(self.config.delimiter as u8);
+
+        // Write header
+        writer.write_record(&[
+            "Thread ID",
+            "Date",
+            "Tweet Count",
+            "First Tweet Likes",
+            "First Tweet RTs",
+            "Total Likes",
+            "Total RTs",
+            "Content"
+        ])?;
+
+        let mut buffer = Vec::with_capacity(self.config.batch_size);
+        let mut records_processed = 0;
+
+        while let Some(record) = self.receiver.recv().await {
+            buffer.push(record);
+            records_processed += 1;
+
+            if buffer.len() >= self.config.batch_size {
+                self.flush_buffer(&mut writer, &mut buffer)?;
+                println!("📊 Processed {} records", records_processed);
+            }
+        }
+
+        // Flush remaining records
+        if !buffer.is_empty() {
+            self.flush_buffer(&mut writer, &mut buffer)?;
+        }
+
+        writer.flush()?;
+        println!("✅ CSV export completed: {} total records", records_processed);
+        Ok(())
+    }
+
+    fn flush_buffer(&self, writer: &mut CsvWriterLib<BufWriter<File>>, buffer: &mut Vec<Vec<String>>) -> Result<()> {
+        for record in buffer.drain(..) {
+            writer.write_record(&record)?;
+        }
+        writer.flush()?;
+        Ok(())
+    }
+}
+
+pub async fn write_csv(
+    threads: &[Thread],
+    screen_name: &str,
+    timestamp: i64,
+    csv_tx: mpsc::Sender<Vec<String>>,
+) -> Result<()> {
+    for thread in threads {
+        let first_tweet = &thread.tweets[0];
+        let total_likes: i64 = thread.tweets.iter()
+            .filter_map(|t| t.favorite_count.parse::<i64>().ok())
+            .sum();
+        let total_retweets: i64 = thread.tweets.iter()
+            .filter_map(|t| t.retweet_count.parse::<i64>().ok())
+            .sum();
+
+        let date = first_tweet.parse_date()
+            .context("Failed to parse tweet date")?
+            .to_rfc3339();
+
+        let record = vec![
+            thread.id.clone(),
+            date,
+            thread.tweets.len().to_string(),
+            first_tweet.favorite_count.clone(),
+            first_tweet.retweet_count.clone(),
+            total_likes.to_string(),
+            total_retweets.to_string(),
+            thread.tweets.iter()
+                .map(|t| t.full_text.clone())
+                .collect::<Vec<_>>()
+                .join("\n---\n"),
+        ];
+
+        csv_tx.send(record).await.context("Failed to send record to CSV writer")?;
+    }
+
+    Ok(())
+}
+-e 
+
+=== src/exporters/summary.rs ===
+
+use anyhow::Result;
+use std::path::Path;
+use chrono::Local;
+use crate::models::Thread;
+use std::fs::File;
+use std::io::{BufWriter, Write};
+use crate::utils::memory::{get_memory_usage, get_peak_memory};
+use tokio::task;
+
+pub async fn write_summary(
+    threads: &[Thread],
+    screen_name: &str,
+    timestamp: i64,
+    output_dir: &Path,
+    duration: std::time::Duration
+) -> Result<()> {
+    let path = output_dir.join(format!("results_{}_{}.txt", screen_name, timestamp));
+    let mut writer = BufWriter::new(File::create(path)?);
+    
+    writeln!(writer, "📊 Operation Summary")?;
+    writeln!(writer, "Time: {}", Local::now())?;
+    writeln!(writer, "Total Threads: {}", threads.len())?;
+    writeln!(writer, "Total Tweets: {}", threads.iter().map(|t| t.tweets.len()).sum::<usize>())?;
+    writeln!(writer, "Duration: {:.2}s", duration.as_secs_f64())?;
+    writeln!(writer, "Average Thread Length: {:.1}", 
+        threads.iter().map(|t| t.tweets.len()).sum::<usize>() as f64 / threads.len() as f64)?;
+    let total_likes: i32 = threads.iter()
+        .flat_map(|t| t.tweets.iter())
+        .filter_map(|t| t.favorite_count.parse::<i32>().ok())
+        .sum();
+    let total_retweets: i32 = threads.iter()
+        .flat_map(|t| t.tweets.iter())
+        .filter_map(|t| t.retweet_count.parse::<i32>().ok())
+        .sum();
+    writeln!(writer, "Total Engagement: {} likes, {} retweets", 
+        total_likes, total_retweets)?;
+    writeln!(writer, "Memory Stats:")?;
+    writeln!(writer, "  Current: {:.2} MB", get_memory_usage())?;
+    writeln!(writer, "  Peak: {:.2} MB", get_peak_memory())?;
+    
+    let (current, peak) = tokio::task::spawn_blocking(|| {
+        (get_memory_usage(), get_peak_memory())
+    }).await?;
+    
+    Ok(())
+} -e 
+
+=== src/exporters/text.rs ===
+
+use anyhow::{Context, Result};
+use std::fs::File;
+use std::io::{BufWriter, Write};
+use std::path::Path;
+use chrono::DateTime;
+use crate::models::Thread;
+use crate::exporters::ExporterConfig;
+
+pub async fn write_threads_to_file(
+    threads: &[Thread],
+    screen_name: &str,
+    timestamp: i64,
+    output_dir: &Path
+) -> Result<()> {
+    let output_path = output_dir.join(format!("threads_{}_{}.txt", screen_name, timestamp));
+    let file = File::create(&output_path)
+        .with_context(|| format!("Failed to create text file: {}", output_path.display()))?;
+    
+    let config = ExporterConfig::default();
+    let mut writer = BufWriter::with_capacity(config.buffer_size, file);
+    let total_threads = threads.len();
+
+    writeln!(writer, "🧵 Thread Archive for @{}\n", screen_name)?;
+    writeln!(writer, "Total Threads: {}\n", total_threads)?;
+
+    for (i, thread) in threads.iter().enumerate() {
+        let first_tweet = thread.tweets.first()
+            .context("Empty thread encountered")?;
+        writeln!(writer, "Thread #{} (ID: {})", i + 1, thread.id)?;
+        writeln!(writer, "Posted: {}\n", first_tweet.parse_date()?.to_rfc3339())?;
+
+        for (j, tweet) in thread.tweets.iter().enumerate() {
+            writeln!(writer, "🐦 Tweet {} of {}:", j + 1, thread.tweets.len())?;
+            writeln!(writer, "{}\n", tweet.full_text)?;
+            writeln!(writer, "❤️ {} | 🔄 {}\n", tweet.favorite_count, tweet.retweet_count)?;
+        }
+
+        writeln!(writer, "-------------------\n")?;
+
+        if (i + 1) % 10 == 0 {
+            println!("📝 Processed {}/{} threads", i + 1, total_threads);
+            writer.flush()?;
+        }
+    }
+
+    writer.flush()?;
+    println!("✅ Text export completed");
+    Ok(())
+}
+-e 
+
+=== src/exporters/mod.rs ===
+
+use anyhow::Result;
+
+mod csv;
+mod text;
+mod summary;
+mod config;
+
+pub use csv::{CsvWriter, write_csv};
+pub use text::write_threads_to_file;
+pub use summary::write_summary;
+pub use config::ExporterConfig;
+
+pub trait Exporter {
+    fn new(config: ExporterConfig) -> Self
+    where
+        Self: Sized;
+    fn write(&mut self, data: &[u8]) -> Result<()>;
+    fn flush(&mut self) -> Result<()>;
+}
+
+pub trait ExportConfig {
+    fn buffer_size(&self) -> usize;
+    fn delimiter(&self) -> char;
+    fn batch_size(&self) -> usize;
+}
+-e 
+
+=== src/models/error.rs ===
+
+use thiserror::Error;
+use std::io;
+
+#[derive(Error, Debug)]
+pub enum TweetError {
+    #[error("Invalid tweet format: {0}")]
+    ValidationError(String),
+    
+    #[error("Invalid date format: {0}")]
+    DateParseError(String),
+    
+    #[error("I/O error: {0}")]
+    IoError(#[from] io::Error),
+    
+    #[error("JSON error: {0}")]
+    JsonError(#[from] serde_json::Error),
+}-e 
+
+=== src/models/tweet.rs ===
+
+use serde::{Deserialize, Serialize};
+use chrono::{DateTime, FixedOffset};
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct Tweet {
+    pub id_str: String,
+    pub favorite_count: String,
+    pub full_text: String,
+    pub in_reply_to_status_id: Option<String>,
+    pub retweeted: bool,
+    pub in_reply_to_screen_name: Option<String>,
+    pub retweet_count: String,
+    pub created_at: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct TweetWrapper {
+    pub tweet: Tweet,
+}
+
+#[derive(Debug)]
+pub struct Thread {
+    pub id: String,
+    pub tweets: Vec<Tweet>,
+}
+
+impl Tweet {
+    pub fn validate(&self) -> Result<(), TweetError> {
+        if self.id_str.is_empty() {
+            return Err(TweetError::ValidationError("Empty tweet ID".into()));
+        }
+        if self.favorite_count.parse::<i32>().is_err() {
+            return Err(TweetError::ValidationError("Invalid favorite count".into()));
+        }
+        if self.retweet_count.parse::<i32>().is_err() {
+            return Err(TweetError::ValidationError("Invalid retweet count".into()));
+        }
+        if self.full_text.is_empty() {
+            return Err(TweetError::ValidationError("Empty tweet text".into()));
+        }
+        // Validate date format
+        self.parse_date()?;
+        Ok(())
+    }
+
+    pub fn parse_date(&self) -> Result<DateTime<FixedOffset>> {
+        DateTime::parse_from_str(&self.created_at, "%a %b %d %H:%M:%S %z %Y")
+            .map_err(|e| TweetError::DateParseError(e.to_string()))
+    }
+}
+
+impl std::fmt::Display for Tweet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Tweet(id: {}, text: {})", self.id_str, self.full_text)
+    }
+}
+
+impl std::fmt::Display for Thread {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Thread(id: {}, tweets: {})", self.id, self.tweets.len())
+    }
+}
+
+impl Thread {
+    pub fn validate(&self) -> Result<(), TweetError> {
+        if self.tweets.is_empty() {
+            return Err(TweetError::ValidationError("Empty thread".into()));
+        }
+        for tweet in &self.tweets {
+            tweet.validate()?;
+        }
+        Ok(())
+    }
+}
+-e 
+
+=== src/models/mod.rs ===
+
+pub mod tweet;
+pub mod error;
+
+pub use tweet::{Thread, Tweet, TweetWrapper};
+pub use error::TweetError;
+
+use std::result;
+pub type Result<T> = result::Result<T, TweetError>;
+-e 
+
+=== src/main.rs ===
+
+use anyhow::{Context, Result};
+use chrono::{Local, Utc};
+use std::io::{self, Write};
+use std::path::Path;
+use std::path::PathBuf;
+use std::time::Instant;
+use tokio::fs as async_fs;
+use tokio::sync::mpsc;
+use tokio::signal;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
+use crate::exporters::CsvWriter;
+use crate::services::process_tweets;
+
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
+mod models;
+mod services;
+mod exporters;
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let input_file = get_input_file()?;
+    let screen_name = get_screen_name()?;
+    // Should validate screen name format
+    if !screen_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+        bail!("Invalid screen name format");
+    }
+    let timestamp = Utc::now().timestamp();
+
+    println!("🕶️ Current working directory: {}", std::env::current_dir()?.display());
+
+    if !async_fs::metadata(&input_file).await.is_ok() {
+        anyhow::bail!("❌ File does not exist: {}", input_file);
+    }
+
+    // Create output directory
+    let input_path = Path::new(&input_file);
+    let output_dir = ensure_output_dir(input_path, &screen_name, timestamp)?;
+
+    // Create a channel for CsvWriter
+    let (tx, rx) = mpsc::channel::<Vec<String>>(100);
+
+    // Initialize CsvWriter and spawn its run task
+    let csv_path = output_dir
+        .join(format!("threads_{}_{}.csv", screen_name, timestamp))
+        .to_str()
+        .ok_or_else(|| anyhow::anyhow!("Invalid characters in CSV output path"))?
+        .to_string();
+
+    let csv_writer = CsvWriter::new(csv_path, rx);
+    tokio::spawn(csv_writer.run());
+
+    println!("🌟 Avengers, assemble! Initiating Operation: Tweet Processing...");
+
+    let shutdown = Arc::new(AtomicBool::new(false));
+    let shutdown_clone = shutdown.clone();
+
+    tokio::spawn(async move {
+        match signal::ctrl_c().await {
+            Ok(()) => {
+                println!("🛑 Shutdown signal received");
+                shutdown_clone.store(true, Ordering::SeqCst);
+            }
+            Err(err) => {
+                eprintln!("⚠️ Failed to listen for shutdown signal: {}", err);
+            }
+        }
+    });
+
+    // Pass shutdown to process_tweets
+    process_tweets(&input_file, &screen_name, tx, &output_dir, timestamp, shutdown).await?;
+
+    Ok(())
+}
+
+fn get_input_file() -> Result<String> {
+    prompt_input("🗂️ Please enter the absolute path to the input JSON file: ")
+}
+
+fn get_screen_name() -> Result<String> {
+    prompt_input("🕵️‍♂️ Please enter the Twitter handle: ")
+}
+
+fn prompt_input(prompt: &str) -> Result<String> {
+    print!("{}", prompt);
+    io::stdout()
+        .flush()
+        .with_context(|| format!("Failed to display prompt: {}", prompt))?;
+    
+    let mut input = String::new();
+    io::stdin()
+        .read_line(&mut input)
+        .with_context(|| "Failed to read user input")?;
+    
+    if input.trim().is_empty() {
+        return Err(anyhow::anyhow!("Empty input is not allowed"));
+    }
+    
+    Ok(input.trim().to_string())
+}
+
+fn ensure_output_dir(base_dir: &Path, screen_name: &str, timestamp: i64) -> Result<PathBuf> {
+    let output_dir = if base_dir.is_absolute() {
+        base_dir.to_path_buf()
+    } else {
+        std::env::current_dir()?.join(base_dir)
+    };
+    
+    let output_dir = output_dir.join(format!("output_{}_{}", screen_name, timestamp));
+    std::fs::create_dir_all(&output_dir)?;
+    Ok(output_dir)
+}-e 
+
+=== src/utils/mod.rs ===
+
+pub mod memory; -e 
+
+=== src/utils/memory.rs ===
+
+use std::fs::read_to_string;
+
+pub fn get_memory_usage() -> f64 {
+    #[cfg(target_os = "linux")]
+    {
+        match sys_info::mem_info() {
+            Ok(mem) => {
+                let used = (mem.total - mem.free - mem.avail) as f64;
+                used / 1024.0 / 1024.0
+            }
+            Err(_) => 0.0
+        }
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        0.0
+    }
+}
+
+#[cfg(target_os = "linux")]
+pub fn get_peak_memory() -> f64 {
+    match read_to_string("/proc/self/status") {
+        Ok(status) => {
+            for line in status.lines() {
+                if line.starts_with("VmPeak:") {
+                    if let Some(peak) = line.split_whitespace().nth(1) {
+                        if let Ok(kb) = peak.parse::<f64>() {
+                            return kb / 1024.0;  // Convert to MB
+                        }
+                    }
+                }
+            }
+            0.0
+        }
+        Err(_) => 0.0
+    }
+}
+
+#[cfg(target_os = "windows")]
+pub fn get_peak_memory() -> f64 {
+    use windows::Win32::System::ProcessStatus::K32GetProcessMemoryInfo;
+    use windows::Win32::System::ProcessStatus::PROCESS_MEMORY_COUNTERS;
+    
+    let mut pmc = PROCESS_MEMORY_COUNTERS::default();
+    unsafe {
+        if K32GetProcessMemoryInfo(GetCurrentProcess(), &mut pmc, std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32).as_bool() {
+            return pmc.PeakWorkingSetSize as f64 / (1024.0 * 1024.0);
+        }
+    }
+    0.0
+}
+
+#[cfg(target_os = "macos")]
+pub fn get_peak_memory() -> f64 {
+    use mach::{task_info, vm_statistics};
+    use mach::structs::task_basic_info;
+    
+    unsafe {
+        let mut info = task_basic_info::default();
+        let mut count = (std::mem::size_of::<task_basic_info>() / std::mem::size_of::<u32>()) as u32;
+        
+        if task_info(mach::task_self(), task_basic_info, &mut info as *mut _ as *mut _, &mut count) == 0 {
+            return info.resident_size as f64 / (1024.0 * 1024.0);
+        }
+    }
+    0.0
+} -e 
+
+=== src/services/config.rs ===
+
+use crate::config::thread::*;
+
+pub struct ProcessorConfig {
+    pub json_buffer_size: usize,
+    pub batch_size: usize,
+}
+
+// Remove duplicate ThreadConfig, use the one from config::thread
+pub use crate::config::thread::ThreadConfig;
+ -e 
+
+=== src/services/thread_builder.rs ===
+
+use std::collections::HashMap;
+use anyhow::Result;
+use crate::models::Tweet;
+use crate::config::thread::SortOrder;
+use std::collections::HashSet;
+
+pub struct ThreadConfig {
+    pub min_tweets: usize,
+    pub max_tweets: usize,
+    pub sort_order: SortOrder,
+}
+
+impl Default for ThreadConfig {
+    fn default() -> Self {
+        Self {
+            min_tweets: crate::config::thread::MIN_LENGTH,
+            max_tweets: crate::config::thread::MAX_LENGTH,
+            sort_order: SortOrder::NewestFirst,
+        }
+    }
+}
+
+pub fn build_threads(
+    tweets_map: &HashMap<String, Tweet>, 
+    screen_name: &str,
+    config: &ThreadConfig
+) -> Result<Vec<Vec<Tweet>>> {
+    let mut threads = Vec::new();
+    let mut processed = HashSet::new();
+
+    // Find root tweets (no reply or reply to different user)
+    for tweet in tweets_map.values() {
+        if !processed.contains(&tweet.id_str) &&
+           (tweet.in_reply_to_screen_name.is_none() || 
+            tweet.in_reply_to_screen_name.as_deref() != Some(screen_name)) {
+            let mut thread = build_thread(tweet, tweets_map, &mut processed);
+            if thread.len() >= config.min_tweets && thread.len() <= config.max_tweets {
+                threads.push(thread);
+            }
+        }
+    }
+
+    sort_threads(&mut threads, config.sort_order)?;
+    Ok(threads)
+}
+
+fn build_thread(
+    root: &Tweet,
+    tweets_map: &HashMap<String, Tweet>,
+    processed: &mut HashSet<String>
+) -> Vec<Tweet> {
+    let mut thread = Vec::new();
+    let mut current_id = &root.id_str;
+    
+    thread.push(root.clone());
+    processed.insert(root.id_str.clone());
+
+    while let Some(reply) = tweets_map.values()
+        .find(|t| t.in_reply_to_status_id.as_deref() == Some(current_id)) 
+    {
+        if processed.contains(&reply.id_str) {
+            break; // Avoid cycles
+        }
+        thread.push(reply.clone());
+        processed.insert(reply.id_str.clone());
+        current_id = &reply.id_str;
+    }
+
+    thread
+}
+
+fn sort_threads(threads: &mut [Vec<Tweet>], sort_order: SortOrder) -> Result<()> {
+    threads.sort_by(|a, b| {
+        match (a[0].parse_date(), b[0].parse_date()) {
+            (Ok(date_a), Ok(date_b)) => match sort_order {
+                SortOrder::NewestFirst => date_b.cmp(&date_a),
+                SortOrder::OldestFirst => date_a.cmp(&date_b),
+            },
+            _ => std::cmp::Ordering::Equal  // Fallback for invalid dates
+        }
+    });
+    Ok(())
+}
+-e 
+
+=== src/services/processor.rs ===
+
+use anyhow::{Context, Result};
+use std::collections::HashMap;
+use std::path::Path;
+use std::io::BufReader;
+use std::fs::File;
+use tokio::sync::mpsc;
+use tokio::task;
+use serde_json::Deserializer;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::time::Instant;
+use chrono::Local;
+
+use crate::models::{Tweet, TweetWrapper, Thread};
+use crate::services::thread_builder::build_threads;
+use crate::exporters::{write_threads_to_file, write_csv, write_summary};
+use crate::config::buffer::*;
+use crate::config::thread::ThreadConfig;
+
+#[derive(Default)]
+struct ProcessingMetrics {
+    tweets_processed: usize,
+    tweets_filtered: usize,
+    threads_built: usize,
+    processing_time: f64,
+}
+
+pub async fn process_tweets(
+    input_file: &str,
+    screen_name: &str,
+    csv_tx: mpsc::Sender<Vec<String>>,
+    output_dir: &Path,
+    timestamp: i64,
+    shutdown: Arc<AtomicBool>,
+) -> Result<()> {
+    let start_datetime = Local::now();
+    println!("🕰️ Avengers, assemble! Mission start time: {}", start_datetime.format("%Y-%m-%d %H:%M:%S"));
+    let start_time = Instant::now();
+
+    validate_input(input_file, screen_name)
+        .context("Input validation failed")?;
+
+    if shutdown.load(Ordering::SeqCst) {
+        println!("🛑 Shutdown requested during processing");
+        return Ok(());
+    }
+
+    println!("🕵️‍♀️ Black Widow is infiltrating the enemy base (reading the file)...");
+    let file = File::open(input_file)
+        .with_context(|| format!("Failed to read input file: {}", input_file))?;
+    let reader = BufReader::with_capacity(JSON_BUFFER, file);
+    
+    println!("🧠 Tony and Bruce are decoding the alien artifact (parsing JSON)...");
+    let tweets: Vec<Tweet> = {
+        let stream = Deserializer::from_reader(reader).into_iter::<TweetWrapper>();
+        let mut tweets = Vec::new();
+        for item in stream {
+            let wrapper = item.context("Failed to parse tweet")?;
+            wrapper.tweet.validate()?;
+            tweets.push(wrapper.tweet);
+        }
+        tweets
+    };
+
+    // Add validation before processing
+    for tweet in &tweets {
+        tweet.validate().context("Tweet validation failed")?;
+    }
+
+    println!("🇺🇸 Captain America is assembling the strike team (filtering tweets)...");
+    let initial_count = tweets.len();
+    tweets.retain(|tweet| {
+        !tweet.retweeted && 
+        (tweet.in_reply_to_screen_name.as_deref() == Some(screen_name) || 
+         tweet.in_reply_to_screen_name.is_none())
+    });
+    println!("👥 Strike team assembled. {} members are on standby, {} are joining the mission.", 
+        initial_count - tweets.len(), tweets.len());
+
+    println!("📡 Shuri is establishing secure comms (organizing tweets)...");
+    let tweets_map: HashMap<String, Tweet> = tweets.into_iter()
+        .map(|t| (t.id_str.clone(), t))
+        .collect();
+
+    println!("🕴️ Nick Fury is forming tactical units (grouping tweets into conversations)...");
+    let screen_name_clone = screen_name.to_string();
+    let config = ThreadConfig::default();
+    let threads = task::spawn_blocking(move || {
+        build_threads(&tweets_map, &screen_name_clone, &config)
+    }).await
+        .with_context(|| "Failed to join thread building task")?
+        .with_context(|| "Failed to build threads")?;
+
+    let threads: Vec<Thread> = threads.into_iter().map(|thread| {
+        Thread {
+            id: thread[0].id_str.clone(),
+            tweets: thread,
+        }
+    }).collect();
+
+    println!(" Tactical units formed. We have {} specialized teams ready for action.", threads.len());
+    println!("📝 Agent Coulson is documenting our missions (writing output)...");
+
+    write_threads_to_file(&threads, screen_name, timestamp, output_dir)
+        .await
+        .context("write_text")?;
+    
+    write_csv(&threads, screen_name, timestamp, csv_tx).await?;
+    
+    println!("🌍 Director Fury is compiling the final mission report...");
+    write_summary(&threads, screen_name, timestamp, output_dir, start_time.elapsed()).await?;
+
+    println!("✅ Mission accomplished in {:.2}s", start_time.elapsed().as_secs_f64());
+    Ok(())
+}
+
+fn validate_input(input_file: &str, screen_name: &str) -> Result<()> {
+    if !Path::new(input_file).exists() {
+        bail!("Input file does not exist: {}", input_file);
+    }
+    if screen_name.trim().is_empty() {
+        bail!("Screen name cannot be empty");
+    }
+    Ok(())
+}
+-e 
+
+=== src/services/mod.rs ===
+
+pub mod processor;
+pub mod thread_builder;
+pub mod config;
+
+pub use processor::process_tweets;
+pub use thread_builder::{build_threads, ThreadConfig};
+pub use config::{ProcessorConfig, ThreadBuilderConfig};

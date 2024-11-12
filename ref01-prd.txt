@@ -54,6 +54,6 @@ Product Requirements Document
 - Built in Rust for performance and safety
 - Async runtime with tokio
 - CSV and JSON parsing capabilities
-- File I/O with buffering support
+- File I/O with buffering support 
 
 ## Usage

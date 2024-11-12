@@ -5,7 +5,7 @@ use serde_json::from_str;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufWriter, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 use tokio::fs as async_fs;
 use tokio::sync::mpsc;
@@ -23,7 +23,7 @@ async fn main() -> Result<()> {
 
     println!("🕶️ Current working directory: {}", std::env::current_dir()?.display());
 
-    if async_fs::metadata(&input_file).await.is_err() {
+    if !async_fs::metadata(&input_file).await.is_ok() {
         anyhow::bail!("❌ File does not exist: {}", input_file);
     }
 
@@ -126,7 +126,7 @@ impl CsvWriter {
         let mut writer = CsvWriterLib::from_writer(BufWriter::new(file));
 
         // Write headers
-        writer.write_record([
+        writer.write_record(&[
             "Thread ID",
             "Date time of first tweet",
             "Number of Tweets in Thread",
@@ -162,7 +162,7 @@ impl CsvWriter {
     }
 }
 
-pub async fn process_tweets(input_file: &str, screen_name: &str, csv_tx: mpsc::Sender<Vec<String>>, output_dir: &Path, _timestamp: i64) -> Result<()> {
+pub async fn process_tweets(input_file: &str, screen_name: &str, csv_tx: mpsc::Sender<Vec<String>>, output_dir: &Path, timestamp: i64) -> Result<()> {
     let screen_name = screen_name.to_string(); // Clone to own the String
 
     let start_datetime = Local::now();
@@ -292,8 +292,8 @@ async fn write_threads_to_file(threads: &[Thread], screen_name: &str, timestamp:
 
 async fn write_csv(
     threads: &[Thread],
-    _screen_name: &str,
-    _timestamp: i64,
+    screen_name: &str,
+    timestamp: i64,
     csv_tx: mpsc::Sender<Vec<String>>,
 ) -> Result<()> {
     for thread in threads {
