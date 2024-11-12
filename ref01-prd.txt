@@ -8,52 +8,57 @@ Product Requirements Document
 - Sort threads chronologically in reverse order (newest first)
 
 2. Input Requirements
-- Accept JSON file containing Twitter data as input
-- Require Twitter handle/screen name for filtering
-- Validate file existence and JSON format
-- Support large files through efficient streaming and buffering
+- Accept JSON file path via CLI prompt
+- Require Twitter handle/screen name via CLI prompt
+- Validate file existence before processing
+- Support large files through async I/O and buffering
 
 3. Data Processing
-- Extract key tweet metadata: ID, text, timestamps, engagement metrics
-- Group related tweets into conversation threads
-- Calculate aggregate metrics per thread (total likes, retweets)
-- Handle UTF-8 text and emoji content
+- Parse JSON into TweetWrapper and Tweet structs
+- Extract metadata: id_str, favorite_count, full_text, reply info, retweets, timestamps
+- Group tweets into Thread structs based on conversation flow
+- Calculate per-thread metrics: total likes, retweets, tweet count
 
 4. Output Generation
-- Create a dedicated output directory for each run: `output_<handle>_<timestamp>`
-- Generate three output files per run within the output directory:
-  * CSV file with thread metrics and full text (`threads_<handle>_<timestamp>.csv`)
-  * TXT file with formatted thread content (`threads_<handle>_<timestamp>.txt`)
-  * TXT file with operation summary/stats (`results_<handle>_<timestamp>.txt`)
+- Create output_<handle>_<timestamp> directory in input file location
+- Generate three files:
+  * threads_<handle>_<timestamp>.csv: Thread metrics with headers
+  * threads_<handle>_<timestamp>.txt: Formatted thread content
+  * results_<handle>_<timestamp>.txt: Operation stats with Avengers theme
 
 5. Performance Features
-- Asynchronous I/O operations using tokio
-- Buffered writing for CSV output
-- Memory-efficient processing using mimalloc allocator
-- Concurrent processing where applicable
+- Async I/O with tokio runtime
+- Buffered CSV writing with 100 record chunks
+- Memory optimization via mimalloc allocator
+- Concurrent processing with tokio tasks
 
 6. Error Handling
-- Comprehensive error handling with context
-- Graceful failure modes with user-friendly messages
-- Input validation and sanitization
-- Robust JSON parsing with malformed data detection
+- Context-aware error handling with anyhow
+- Graceful error messages for common failures
+- Input validation for files and JSON format
+- Proper error propagation through Result types
 
 7. User Experience
-- Interactive CLI interface
-- Clear progress indicators with emoji
-- Detailed but friendly status messages
-- Operation summary with key metrics
+- Marvel Avengers themed progress messages
+- Emoji status indicators
+- Clear operation statistics
+- Timestamp-based operation tracking
 
 8. Data Format Support
-- CSV output with standardized columns
-- Human-readable text output
-- Structured results summary
-- Timestamps in standard formats
+- CSV with 8 standardized columns
+- Human-readable thread text files
+- Operation summary with metrics
+- Standard datetime formats
 
-9. Technical Requirements
-- Built in Rust for performance and safety
-- Async runtime with tokio
-- CSV and JSON parsing capabilities
-- File I/O with buffering support 
+9. Technical Stack
+- Rust 2021 edition
+- Dependencies:
+  * tokio for async runtime
+  * serde for serialization
+  * csv for data output
+  * mimalloc for memory
+  * anyhow for error handling
+  * chrono for timestamps
 
 ## Usage
+Run the program with `cargo run`
