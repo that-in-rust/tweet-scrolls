@@ -23,7 +23,7 @@ Main Processing Pipeline:
           ▼                 ▼
 ┌──────────────┐    ┌─────────────┐
 │write_threads_│    │  write_csv  │
-│  to_file()  │    │    ()       │
+│  to_file()   │    │    ()       │
 └──────────────┘    └─────────────┘
 
 Data Structures:
@@ -42,3 +42,5 @@ Memory Management:
 🔒 Ownership flows down
 📦 Borrows flow up
 🚀 Async tasks run in parallel
+
+

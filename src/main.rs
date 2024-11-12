@@ -23,12 +23,22 @@ async fn main() -> Result<()> {
 
     println!("🕶️ Current working directory: {}", std::env::current_dir()?.display());
 
-    if async_fs::metadata(&input_file).await.is_err() {
+    if !async_fs::metadata(&input_file).await.is_ok() {
         anyhow::bail!("❌ File does not exist: {}", input_file);
     }
+    //  |   |          |          |       |
+    //  |   |          |          |       Error message with file path
+    //  |   |          |          Check if file exists
+    //  |   |          Await async operation
+    //  |   Get metadata of input file
+    //  Negate the result to check if file does not exist
 
     // Create output directory
     let input_path = Path::new(&input_file);
+    //  |           |      |
+    //  |           |      Convert input file path to Path
+    //  |           Path::new() creates a new Path instance
+    //  Variable to hold the Path instance
     let output_dir = input_path.parent().unwrap().join(format!("output_{}_{}", screen_name, timestamp));
     //  |           |          |      |     |      |
     //  |           |          |      |     |      Timestamp value
@@ -126,7 +136,7 @@ impl CsvWriter {
         let mut writer = CsvWriterLib::from_writer(BufWriter::new(file));
 
         // Write headers
-        writer.write_record([
+        writer.write_record(&[
             "Thread ID",
             "Date time of first tweet",
             "Number of Tweets in Thread",
@@ -292,8 +302,8 @@ async fn write_threads_to_file(threads: &[Thread], screen_name: &str, timestamp:
 
 async fn write_csv(
     threads: &[Thread],
-    _screen_name: &str,
-    _timestamp: i64,
+    screen_name: &str,
+    timestamp: i64,
     csv_tx: mpsc::Sender<Vec<String>>,
 ) -> Result<()> {
     for thread in threads {
