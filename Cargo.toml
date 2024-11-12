@@ -1,0 +1,17 @@
+[package]
+name = "tweet-scrolls"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "tweet-scrolls"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+csv = "1.1"
+mimalloc = "0.1"

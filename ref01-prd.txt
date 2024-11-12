@@ -1,0 +1,58 @@
+# Tweet-Scrolls: Twitter Thread Archiver
+Product Requirements Document
+
+1. Core Functionality
+- Process Twitter JSON data files to extract and organize tweet threads
+- Support parsing of tweet threads, including replies and conversations
+- Filter out retweets and irrelevant replies
+- Sort threads chronologically in reverse order (newest first)
+
+2. Input Requirements
+- Accept JSON file containing Twitter data as input
+- Require Twitter handle/screen name for filtering
+- Validate file existence and JSON format
+- Support large files through efficient streaming and buffering
+
+3. Data Processing
+- Extract key tweet metadata: ID, text, timestamps, engagement metrics
+- Group related tweets into conversation threads
+- Calculate aggregate metrics per thread (total likes, retweets)
+- Handle UTF-8 text and emoji content
+
+4. Output Generation
+- Generate three output files per run:
+  * CSV file with thread metrics and full text (threads_<handle>_<timestamp>.csv)
+  * TXT file with formatted thread content (threads_<handle>_<timestamp>.txt)
+  * TXT file with operation summary/stats (results_<handle>_<timestamp>.txt)
+
+5. Performance Features
+- Asynchronous I/O operations using tokio
+- Buffered writing for CSV output
+- Memory-efficient processing using mimalloc allocator
+- Concurrent processing where applicable
+
+6. Error Handling
+- Comprehensive error handling with context
+- Graceful failure modes with user-friendly messages
+- Input validation and sanitization
+- Robust JSON parsing with malformed data detection
+
+7. User Experience
+- Interactive CLI interface
+- Clear progress indicators with emoji
+- Detailed but friendly status messages
+- Operation summary with key metrics
+
+8. Data Format Support
+- CSV output with standardized columns
+- Human-readable text output
+- Structured results summary
+- Timestamps in standard formats
+
+9. Technical Requirements
+- Built in Rust for performance and safety
+- Async runtime with tokio
+- CSV and JSON parsing capabilities
+- File I/O with buffering support
+
+## Usage
