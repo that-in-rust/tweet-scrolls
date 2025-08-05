@@ -1,64 +1,441 @@
-# Tweet-Scrolls: Twitter Thread Archiver
+# Tweet-Scrolls: Twitter Archive Intelligence System
 Product Requirements Document
 
-1. Core Functionality
+## Core Mission
+Transform Twitter archive data into actionable relationship intelligence through user-centric analysis, generating LLM-ready summary files for deeper insights while maintaining complete privacy through CPU-only processing.
+
+## 1. Core Functionality
+
+### 1.1 Twitter Thread Processing (Existing)
 - Process Twitter JSON data files to extract and organize tweet threads
 - Support parsing of tweet threads, including replies and conversations
 - Filter out retweets and irrelevant replies
 - Sort threads chronologically in reverse order (newest first)
 
-2. Input Requirements
-- Accept JSON file path via CLI prompt
-- Require Twitter handle/screen name via CLI prompt
-- Validate file existence before processing
-- Support large files through async I/O and buffering
+### 1.2 Direct Message Processing (Existing)
+- Parse DM conversations with JavaScript prefix removal
+- Extract conversation metadata and participant information
+- Process reaction data and response timing patterns
+- Generate conversation summaries and statistics
 
-3. Data Processing
-- Parse JSON into TweetWrapper and Tweet structs
-- Extract metadata: id_str, favorite_count, full_text, reply info, retweets, timestamps
-- Group tweets into Thread structs based on conversation flow
-- Calculate per-thread metrics: total likes, retweets, tweet count
+### 1.3 User Relationship Intelligence (NEW)
+- **Primary Goal**: Create comprehensive user relationship profiles for LLM analysis
+- Extract user interaction patterns across tweets and DMs
+- Generate anonymized relationship summaries with behavioral insights
+- Build temporal interaction timelines for relationship evolution tracking
+- Create network topology maps showing connection strengths
 
-4. Output Generation
-- Create output_<handle>_<timestamp> directory in input file location
-- Generate three files:
-  * threads_<handle>_<timestamp>.csv: Thread metrics with headers
-  * threads_<handle>_<timestamp>.txt: Formatted thread content
-  * results_<handle>_<timestamp>.txt: Operation stats with Avengers theme
+## 2. Input Requirements
 
-5. Performance Features
+### 2.1 File Support
+- Accept Twitter export files: `tweets.js`, `direct-messages.js`, `direct-message-headers.js`
+- Support large files (3M+ lines) through streaming and async processing
+- Validate file existence and format before processing
+- Handle JavaScript prefix removal for Twitter export format
+
+### 2.2 User Input
+- Twitter handle/screen name via CLI prompt
+- Optional configuration for anonymization level
+- Output directory preferences
+
+## 3. Data Processing Architecture
+
+### 3.1 Core Data Structures
+```rust
+// Existing structures
+Tweet, TweetWrapper, Thread
+DmMessage, DmMessageCreate, DmConversation
+
+// New relationship structures
+UserProfile, InteractionEvent, RelationshipNetwork
+TemporalPattern, CommunicationStats, ReactionAnalysis
+```
+
+### 3.2 Processing Pipeline
+1. **Data Ingestion**: Parse JSON files with error recovery
+2. **User Extraction**: Identify unique users across tweets and DMs
+3. **Interaction Mapping**: Build comprehensive interaction graphs
+4. **Pattern Analysis**: Extract temporal and behavioral patterns
+5. **Profile Generation**: Create LLM-ready relationship summaries
+6. **Network Analysis**: Build relationship topology maps
+
+## 4. Output Generation
+
+### 4.1 Existing Outputs
+- Thread CSV and TXT files
+- DM conversation summaries
+- Operation statistics with themed messages
+
+### 4.2 New Relationship Intelligence Outputs
+```
+relationship_profiles/
+├── user_[hash]_profile.txt          # Individual relationship summary
+├── interaction_timeline.txt         # Chronological interaction log
+├── communication_patterns.txt       # Aggregate behavioral patterns
+├── relationship_network.txt         # Network topology summary
+└── llm_analysis_prompts.txt         # Suggested questions for LLM analysis
+```
+
+### 4.3 LLM-Ready File Format
+Each profile file contains:
+- **User Statistics**: Message counts, response times, interaction frequency
+- **Communication Patterns**: Preferred topics, reaction patterns, timing preferences
+- **Relationship Metrics**: Strength indicators, communication balance, growth trends
+- **Temporal Analysis**: Interaction evolution, seasonal patterns, response consistency
+- **Network Position**: Role in broader social network, bridge connections
+
+## 5. Privacy and Security
+
+### 5.1 Data Protection
+- **CPU-Only Processing**: No external API calls or cloud services
+- **User Anonymization**: Hash-based user IDs, no personal identifiers
+- **Local Storage**: All data remains on user's machine
+- **Optional Content Masking**: Sensitive content can be excluded from summaries
+
+### 5.2 Anonymization Strategy
+- Use Blake3 hashing for consistent user ID anonymization
+- Remove or hash sensitive personal information
+- Focus on behavioral patterns rather than content analysis
+- Provide user control over data inclusion/exclusion
+
+## 6. Performance Requirements
+
+### 6.1 Scalability
+- Handle 3M+ line files efficiently
+- Process relationships for 100+ unique users
+- Generate profiles within reasonable time (< 5 minutes for typical archives)
+- Memory-efficient processing with streaming algorithms
+
+### 6.2 Technical Implementation
 - Async I/O with tokio runtime
-- Buffered CSV writing with 100 record chunks
-- Memory optimization via mimalloc allocator
-- Concurrent processing with tokio tasks
+- Parallel processing where applicable
+- Progress indicators for long-running operations
+- Incremental processing capabilities
 
-6. Error Handling
-- Context-aware error handling with anyhow
-- Graceful error messages for common failures
-- Input validation for files and JSON format
-- Proper error propagation through Result types
+## 7. LLM Integration Strategy
 
-7. User Experience
-- Marvel Avengers themed progress messages
-- Emoji status indicators
-- Clear operation statistics
-- Timestamp-based operation tracking
+### 7.1 Output Optimization
+- Structure files for optimal LLM consumption
+- Include context and metadata for better analysis
+- Provide suggested analysis prompts
+- Format data for easy copy-paste into NotebookLM, Claude, ChatGPT
 
-8. Data Format Support
-- CSV with 8 standardized columns
-- Human-readable thread text files
-- Operation summary with metrics
-- Standard datetime formats
+### 7.2 Analysis Categories
+- **Relationship Health**: Identify relationships needing attention
+- **Communication Optimization**: Improve interaction patterns
+- **Network Insights**: Understand social network position
+- **Behavioral Patterns**: Recognize personal communication habits
+- **Temporal Trends**: Track relationship evolution over time
 
-9. Technical Stack
-- Rust 2021 edition
-- Dependencies:
-  * tokio for async runtime
-  * serde for serialization
-  * csv for data output
-  * mimalloc for memory
-  * anyhow for error handling
-  * chrono for timestamps
+## 8. Technical Stack
+
+### 8.1 Core Dependencies
+```toml
+[dependencies]
+anyhow = "1.0"           # Error handling
+chrono = "0.4"           # Date/time parsing
+serde = "1.0"            # JSON serialization
+serde_json = "1.0"       # JSON parsing
+tokio = { version = "1.0", features = ["full"] }
+csv = "1.1"              # CSV generation
+mimalloc = "0.1"         # Memory allocator
+blake3 = "1.0"           # User ID hashing
+regex = "1.0"            # Pattern matching
+```
+
+### 8.2 New Dependencies for Relationship Analysis
+```toml
+petgraph = "0.6"         # Graph algorithms
+nalgebra = "0.32"        # Statistical analysis
+rayon = "1.7"            # Parallel processing
+indicatif = "0.17"       # Progress bars
+```
+
+## 9. Development Approach
+
+### 9.1 Test-Driven Development
+- Write tests first for each relationship analysis feature
+- Test with anonymized sample data
+- Validate privacy guarantees through testing
+- Performance benchmarks for large datasets
+
+### 9.2 Implementation Phases
+**Phase 1**: User extraction and basic profiling
+**Phase 2**: Interaction timeline generation
+**Phase 3**: Communication pattern analysis
+**Phase 4**: Network topology mapping
+**Phase 5**: LLM integration optimization
+
+### 9.3 Detailed Function Specifications
+
+#### Core Function Signatures
+```rust
+// User anonymization
+fn hash_user_id(user_id: &str) -> String;
+
+// User extraction
+fn extract_users_from_dms(dm_data: &[DmWrapper]) -> HashSet<String>;
+fn extract_users_from_tweets(tweet_data: &[TweetWrapper]) -> HashSet<String>;
+
+// Profile creation
+fn create_user_profile(user_hash: &str, dm_data: &[DmWrapper], tweet_data: &[TweetWrapper]) -> UserProfile;
+
+// Statistics calculation
+fn calculate_dm_statistics(messages: &[DmMessage], user_hash: &str) -> DmStatistics;
+fn calculate_response_times(conversation: &[DmMessage]) -> Vec<Duration>;
+
+// File generation
+fn generate_profile_text(profile: &UserProfile) -> String;
+fn generate_timeline_text(timeline: &[InteractionEvent]) -> String;
+fn generate_llm_prompts(profiles: &HashMap<String, UserProfile>) -> String;
+```
+
+#### Sample Data Generators for Testing (Based on Real Twitter Export Structure)
+```rust
+// Accurate DM data structure matching real Twitter export
+fn create_sample_dm_data() -> Vec<DmWrapper> {
+    vec![
+        DmWrapper {
+            dm_conversation: DmConversation {
+                conversation_id: "3382-1132151165410455552".to_string(),
+                messages: vec![
+                    DmMessage {
+                        message_create: DmMessageCreate {
+                            recipient_id: "3382".to_string(),
+                            reactions: vec![
+                                DmReaction {
+                                    sender_id: "3382".to_string(),
+                                    reaction_key: "like".to_string(),
+                                    event_id: "1927386486816542720".to_string(),
+                                    created_at: "2025-05-27T15:28:42.241Z".to_string(),
+                                }
+                            ],
+                            urls: vec![
+                                DmUrl {
+                                    url: "https://t.co/nsVswPpSDi".to_string(),
+                                    expanded: "https://x.com/hnshah/status/1927383046421893182".to_string(),
+                                    display: "x.com/hnshah/status/…".to_string(),
+                                }
+                            ],
+                            text: "https://t.co/nsVswPpSDi\n\nI have been thinking about this - build products which are far better because of AI".to_string(),
+                            media_urls: vec![],
+                            sender_id: "1132151165410455552".to_string(),
+                            id: "1927384914816532581".to_string(),
+                            created_at: "2025-05-27T15:22:27.518Z".to_string(),
+                            edit_history: vec![],
+                        }
+                    },
+                    DmMessage {
+                        message_create: DmMessageCreate {
+                            recipient_id: "1132151165410455552".to_string(),
+                            reactions: vec![],
+                            urls: vec![],
+                            text: "are you planning on having a co-founder?".to_string(),
+                            media_urls: vec![],
+                            sender_id: "3382".to_string(),
+                            id: "1916872219248173473".to_string(),
+                            created_at: "2025-04-28T15:08:45.535Z".to_string(),
+                            edit_history: vec![],
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
+
+// Accurate Tweet data structure matching real Twitter export
+fn create_sample_tweet_data() -> Vec<TweetWrapper> {
+    vec![
+        TweetWrapper {
+            tweet: Tweet {
+                edit_info: Some(EditInfo {
+                    initial: EditInitial {
+                        edit_tweet_ids: vec!["1947489885754986818".to_string()],
+                        editable_until: "2025-07-22T03:52:26.000Z".to_string(),
+                        edits_remaining: "5".to_string(),
+                        is_edit_eligible: true,
+                    }
+                }),
+                retweeted: false,
+                source: "<a href=\"https://mobile.twitter.com\" rel=\"nofollow\">Twitter Web App</a>".to_string(),
+                entities: TweetEntities {
+                    hashtags: vec![],
+                    symbols: vec![],
+                    user_mentions: vec![
+                        UserMention {
+                            name: "NotebookLM".to_string(),
+                            screen_name: "NotebookLM".to_string(),
+                            indices: vec!["4".to_string(), "15".to_string()],
+                            id_str: "1846671939437252609".to_string(),
+                            id: "1846671939437252609".to_string(),
+                        }
+                    ],
+                    urls: vec![],
+                },
+                display_text_range: vec!["0".to_string(), "270".to_string()],
+                favorite_count: "5".to_string(),
+                id_str: "1947489885754986818".to_string(),
+                truncated: false,
+                retweet_count: "0".to_string(),
+                id: "1947489885754986818".to_string(),
+                created_at: "Tue Jul 22 02:52:26 +0000 2025".to_string(),
+                favorited: false,
+                full_text: "Via @NotebookLM whom I fed thousands of my tweets in txt".to_string(),
+                lang: "en".to_string(),
+                in_reply_to_status_id_str: None,
+                in_reply_to_user_id: None,
+                in_reply_to_screen_name: None,
+            }
+        },
+        TweetWrapper {
+            tweet: Tweet {
+                edit_info: None,
+                retweeted: false,
+                source: "<a href=\"http://twitter.com/download/android\" rel=\"nofollow\">Twitter for Android</a>".to_string(),
+                entities: TweetEntities {
+                    hashtags: vec![],
+                    symbols: vec![],
+                    user_mentions: vec![
+                        UserMention {
+                            name: "TnvMadhav".to_string(),
+                            screen_name: "TnvMadhav".to_string(),
+                            indices: vec!["0".to_string(), "10".to_string()],
+                            id_str: "848022794629730304".to_string(),
+                            id: "848022794629730304".to_string(),
+                        }
+                    ],
+                    urls: vec![],
+                },
+                display_text_range: vec!["0".to_string(), "68".to_string()],
+                favorite_count: "0".to_string(),
+                id_str: "1947478130287120782".to_string(),
+                truncated: false,
+                retweet_count: "0".to_string(),
+                id: "1947478130287120782".to_string(),
+                created_at: "Tue Jul 22 02:05:43 +0000 2025".to_string(),
+                favorited: false,
+                full_text: "@TnvMadhav Been @dhh @jasonfried fan since I came to twitter in 2021".to_string(),
+                lang: "en".to_string(),
+                in_reply_to_status_id_str: Some("1947467485424562448".to_string()),
+                in_reply_to_user_id: Some("848022794629730304".to_string()),
+                in_reply_to_screen_name: Some("TnvMadhav".to_string()),
+            }
+        }
+    ]
+}
+
+// DM Header structure for metadata-only processing
+fn create_sample_dm_headers() -> Vec<DmHeaderWrapper> {
+    vec![
+        DmHeaderWrapper {
+            dm_conversation: DmHeaderConversation {
+                conversation_id: "3382-1132151165410455552".to_string(),
+                messages: vec![
+                    DmHeaderMessage {
+                        message_create: DmHeaderMessageCreate {
+                            id: "1927384914816532581".to_string(),
+                            sender_id: "1132151165410455552".to_string(),
+                            recipient_id: "3382".to_string(),
+                            created_at: "2025-05-27T15:22:27.518Z".to_string(),
+                        }
+                    },
+                    DmHeaderMessage {
+                        message_create: DmHeaderMessageCreate {
+                            id: "1916872219248173473".to_string(),
+                            sender_id: "3382".to_string(),
+                            recipient_id: "1132151165410455552".to_string(),
+                            created_at: "2025-04-28T15:08:45.535Z".to_string(),
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
+```
+
+#### Additional Data Structures for Relationship Intelligence
+```rust
+// Reaction analysis structures
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct DmReaction {
+    sender_id: String,
+    reaction_key: String,  // "like", "excited", "laugh", "wow", "cry", "heart", "fire", "thumbs_up", "thumbs_down"
+    event_id: String,
+    created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct DmUrl {
+    url: String,           // Short URL (t.co)
+    expanded: String,      // Full URL
+    display: String,       // Display text
+}
+
+// User interaction tracking
+#[derive(Debug, Clone)]
+struct UserInteractionStats {
+    user_hash: String,
+    dm_messages_sent: u32,
+    dm_messages_received: u32,
+    reactions_given: HashMap<String, u32>,  // reaction_key -> count
+    reactions_received: HashMap<String, u32>,
+    tweet_mentions_made: u32,
+    tweet_mentions_received: u32,
+    tweet_replies_made: u32,
+    tweet_replies_received: u32,
+    first_interaction: DateTime<Utc>,
+    last_interaction: DateTime<Utc>,
+    avg_response_time_hours: f64,
+}
+```
+
+### 9.4 Integration with Existing System
+```rust
+// Add to main() function after existing DM processing
+async fn main() -> Result<()> {
+    // ... existing code ...
+    
+    // NEW: Relationship analysis option
+    println!("🧠 Would you like to generate relationship intelligence profiles? (y/n)");
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    
+    if input.trim().to_lowercase() == "y" {
+        println!("🔍 Initiating Relationship Intelligence Analysis...");
+        analyze_relationships(&input_file, &screen_name, &output_dir, timestamp).await?;
+    }
+    
+    Ok(())
+}
+```
+
+## 10. Success Metrics
+
+### 10.1 Functional Success
+- Generate comprehensive profiles for all active relationships
+- Produce actionable insights through LLM analysis
+- Maintain complete privacy and local processing
+- Process typical archives in under 5 minutes
+
+### 10.2 User Value
+- Enable discovery of relationship patterns not visible manually
+- Provide actionable insights for improving communication
+- Support better relationship maintenance and networking
+- Create foundation for ongoing relationship intelligence
 
 ## Usage
-Run the program with `cargo run`
+```bash
+cargo run
+# Select option for relationship analysis
+# Provide Twitter archive file paths
+# Review generated relationship profiles
+# Upload profiles to LLM for analysis
+```
+
+## Future Enhancements
+- Real-time relationship monitoring
+- Integration with other social platforms
+- Advanced visualization capabilities
+- Automated relationship health alerts

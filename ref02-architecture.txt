@@ -2,8 +2,12 @@ Data Flow in main.rs:
 
 Input/Output Flow:
 ┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-│  JSON File  │ ──► │ Tweet-Scrolls│ ──► │ Output Files│
+│ tweets.js   │ ──► │ Tweet-Scrolls│ ──► │Tweet Output │
 └─────────────┘     └──────────────┘     └─────────────┘
+┌─────────────┐            │              ┌─────────────┐
+│direct-msg.js│ ──────────►│              │ DM Output   │
+│ (optional)  │            │              │ (optional)  │
+└─────────────┘            └─────────────►└─────────────┘
 
 Main Processing Pipeline:
 ┌─────────────┐
@@ -13,34 +17,86 @@ Main Processing Pipeline:
 ┌──────────────────────┐     ┌─────────────────────┐
 │ get_input_file()     │ ◄── │ get_screen_name()   │
 └──────────────────────┘     └─────────────────────┘
-          │
-          ▼
-┌──────────────────────┐
-│  process_tweets()    │
-└──────────────────────┘
-          │
-          ├─────────────────┐
-          ▼                 ▼
-┌──────────────┐    ┌─────────────┐
-│write_threads_│    │  write_csv  │
-│  to_file()   │    │    ()       │
-└──────────────┘    └─────────────┘
+          │                           │
+          ▼                           ▼
+┌──────────────────────┐     ┌─────────────────────┐
+│  process_tweets()    │     │   get_dm_file()     │
+└──────────────────────┘     │    (optional)       │
+          │                  └─────────────────────┘
+          ├─────────────────┐          │
+          ▼                 ▼          ▼
+┌──────────────┐    ┌─────────────┐   ┌──────────────────┐
+│write_threads_│    │  write_csv  │   │ process_dm_file()│
+│  to_file()   │    │    ()       │   │   (optional)     │
+└──────────────┘    └─────────────┘   └──────────────────┘
+                                              │
+                                              ├─────────────────┐
+                                              ▼                 ▼
+                                      ┌──────────────┐  ┌─────────────┐
+                                      │ DM CSV/TXT   │  │ DM Results  │
+                                      │   Output     │  │   Summary   │
+                                      └──────────────┘  └─────────────┘
 
 Data Structures:
+Tweet Processing:
 Tweet ──► TweetWrapper
   │
   └──► Thread
         │
         └──► Vec<Tweet>
 
+DM Processing (NEW):
+DmMessage ──► DmConversation ──► DmWrapper
+    │              │
+    └──► DmMessageCreate    └──► ProcessedConversation
+                                      │
+                                      └──► Vec<ProcessedConversation>
+
 Async Channel Flow:
+Tweet Processing:
 ┌─────────────┐    ┌───────────┐    ┌─────────────┐
 │ CSV Sender  │──► │Channel TX │──► │ CSV Writer  │
+└─────────────┘    └───────────┘    └─────────────┘
+
+DM Processing (NEW):
+┌─────────────┐    ┌───────────┐    ┌─────────────┐
+│ DM CSV Data │──► │Channel TX │──► │ DM CSV Writer│
 └─────────────┘    └───────────┘    └─────────────┘
 
 Memory Management:
 🔒 Ownership flows down
 📦 Borrows flow up
 🚀 Async tasks run in parallel
+
+Processing Details:
+
+Tweet Processing Pipeline:
+1. JSON Parsing: tweets.js → Vec<TweetWrapper>
+2. Filtering: Remove retweets and invalid tweets
+3. Threading: Group tweets by conversation chains
+4. Sorting: Chronological order (newest first)
+5. Output: CSV + TXT + Summary files
+
+DM Processing Pipeline (NEW):
+1. JSON Parsing: direct-messages.js → Vec<DmWrapper>
+2. JavaScript Prefix Removal: Strip "window.YTD.direct_messages.part0 = "
+3. Conversation Extraction: Extract message metadata
+4. Filtering: Remove empty conversations (0 messages)
+5. Sorting: By message count (descending)
+6. Output: DM CSV + TXT + Summary files
+
+File Format Support:
+- Input: JavaScript-prefixed JSON files from Twitter exports
+- Output: Standard CSV with headers, human-readable TXT, processing summaries
+- Error Handling: Comprehensive with anyhow context propagation
+- Performance: Async I/O with buffered writing and memory optimization
+
+Technical Architecture:
+- Single-file Rust binary (src/main.rs)
+- Tokio async runtime for I/O operations
+- Channel-based CSV writing for performance
+- Memory-optimized with mimalloc allocator
+- Test-driven development with comprehensive coverage
+- Graceful error handling and optional feature degradation
 
 

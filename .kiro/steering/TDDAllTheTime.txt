@@ -1,0 +1,477 @@
+here tests act as environmental health indicators, ensuring the long-term viability and safety of your codebase. Like a healthy ecosystem maintains balance through natural checks and feedback loops, TDD maintains code quality through continuous verification cycles.
+
+## The Sacred TDD Cycle: Red-Green-Refactor
+
+### 🔴 RED: Write a Failing Test
+**"Make it fail meaningfully"**
+
+```rust
+#[test]
+fn test_archive_creation_with_empty_directory() -> anyhow::Result<()> {
+    let temp_dir = TempDir::new()?;
+    let config = ArchiveConfig {
+        root_dir: temp_dir.path().to_path_buf(),
+        ..Default::default()
+    };
+    
+    let archiver = CodeArchiver::new(config)?;
+    let archive = archiver.create_archive()?;
+    
+    // This should fail initially - we haven't implemented empty directory handling
+    assert!(archive.is_empty(), "Empty directory should produce empty archive");
+    Ok(())
+}
+```
+
+**Red Phase Checklist:**
+- [ ] Test compiles but fails for the right reason
+- [ ] Failure message is clear and actionable
+- [ ] Test name describes the expected behavior
+- [ ] Test is minimal and focused on one behavior
+
+### 🟢 GREEN: Make the Test Pass
+**"Make it work, don't make it perfect"**
+
+Write the simplest code that makes the test pass. Resist the urge to over-engineer.
+
+```rust
+impl CodeArchiver {
+    pub fn create_archive(&self) -> Result<Vec<FileEntry>, ArchiveError> {
+        let entries = self.scan_directory()?;
+        
+        // Simple implementation - just return what we found
+        if entries.is_empty() {
+            return Ok(Vec::new()); // Makes our test pass
+        }
+        
+        Ok(entries)
+    }
+}
+```
+
+**Green Phase Checklist:**
+- [ ] Test passes
+- [ ] Implementation is minimal
+- [ ] No premature optimization
+- [ ] All existing tests still pass
+
+### 🔵 REFACTOR: Improve Without Breaking
+**"Make it clean, keep it working"**
+
+Now improve the code while keeping all tests green.
+
+```rust
+impl CodeArchiver {
+    pub fn create_archive(&self) -> Result<Vec<FileEntry>, ArchiveError> {
+        let entries = self.scan_directory()
+            .context("Failed to scan directory for archive creation")?;
+        
+        self.apply_filters(entries)
+            .context("Failed to apply filters to archive entries")
+    }
+    
+    fn apply_filters(&self, entries: Vec<FileEntry>) -> Result<Vec<FileEntry>, ArchiveError> {
+        // Refactored filtering logic
+        Ok(entries.into_iter()
+            .filter(|entry| self.should_include_entry(entry))
+            .collect())
+    }
+}
+```
+
+**Refactor Phase Checklist:**
+- [ ] All tests remain green
+- [ ] Code is more readable/maintainable
+- [ ] No new functionality added
+- [ ] Performance improvements are measured
+
+## Rust-Specific TDD Patterns
+
+### 1. Leverage the Compiler as Your Testing Partner
+
+The Rust compiler catches many errors that would require tests in other languages. Focus your tests on:
+
+- **Business logic**, not memory safety
+- **Error handling paths** and edge cases
+- **Integration between components**
+- **Public API contracts**
+
+```rust
+// Don't test this - the compiler guarantees it
+fn test_no_null_pointer_dereference() { /* Unnecessary in Rust */ }
+
+// Test this - business logic the compiler can't verify
+#[test]
+fn test_file_filtering_respects_gitignore_rules() -> anyhow::Result<()> {
+    // Test the logic, not the memory safety
+}
+```
+
+### 2. Test Error Paths Explicitly
+
+Rust's `Result` type makes error handling explicit. Test both success and failure paths.
+
+```rust
+#[test]
+fn test_archive_creation_handles_permission_denied() -> anyhow::Result<()> {
+    let temp_dir = create_readonly_directory()?;
+    let config = ArchiveConfig {
+        root_dir: temp_dir.path().to_path_buf(),
+        ..Default::default()
+    };
+    
+    let result = CodeArchiver::new(config);
+    
+    match result {
+        Err(ArchiveError::PermissionDenied(_)) => Ok(()),
+        other => panic!("Expected PermissionDenied error, got: {:?}", other),
+    }
+}
+```
+
+### 3. Use Property-Based Testing for Complex Logic
+
+For complex algorithms, use `proptest` to verify properties hold across many inputs.
+
+```rust
+use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn test_size_filter_property(
+        file_size in 0u64..1_000_000,
+        max_size in 0u64..1_000_000
+    ) {
+        let should_include = file_size <= max_size;
+        let result = size_filter_includes(file_size, max_size);
+        prop_assert_eq!(should_include, result);
+    }
+}
+```
+
+## TDD Workflow Integration
+
+### Pre-Development Ritual
+1. **Understand the requirement** - Read the spec thoroughly
+2. **Write the test first** - Before any implementation code
+3. **Run the test** - Ensure it fails for the right reason
+4. **Commit the failing test** - Document your intent
+
+### Development Rhythm
+```bash
+# The TDD mantra
+cargo test          # RED - See the failure
+# Write minimal code
+cargo test          # GREEN - See it pass
+# Refactor
+cargo test          # BLUE - Keep it green
+git commit -m "feat: implement X with TDD"
+```
+
+### Continuous Verification
+- Run `cargo test` after every small change
+- Use `cargo watch -x test` for automatic test running
+- Keep test runs under 10 seconds for tight feedback loops
+
+## Test Organization Strategy
+
+### Test Hierarchy
+```
+src/
+├── lib.rs                 # Unit tests inline with #[cfg(test)]
+└── archive/
+    ├── mod.rs             # Module-level unit tests
+    └── scanner.rs         # Function-level unit tests
+
+tests/
+├── integration/           # Integration tests
+│   ├── cli_tests.rs
+│   └── workflow_tests.rs
+└── common/               # Shared test utilities
+    ├── mod.rs
+    ├── fixtures.rs
+    └── assertions.rs
+```
+
+### Test Naming Convention
+```rust
+#[test]
+fn test_[component]_[scenario]_[expected_outcome]() {
+    // Example: test_archiver_empty_directory_returns_empty_archive
+}
+```
+
+## Quality Gates and Metrics
+
+### Minimum Standards
+- **Test Coverage**: Aim for 80%+ line coverage, 100% for critical paths
+- **Test Speed**: Unit tests < 100ms each, integration tests < 5s each
+- **Test Reliability**: Zero flaky tests in CI
+- **Documentation**: Every public API has a doctest example
+
+### CI/CD Integration
+```yaml
+# .github/workflows/test.yml
+- name: Run tests with coverage
+  run: |
+    cargo test --all-features
+    cargo tarpaulin --out xml --output-dir coverage/
+    
+- name: Enforce quality gates
+  run: |
+    cargo clippy -- -D warnings
+    cargo fmt -- --check
+```
+
+## Anti-Patterns to Avoid
+
+### ❌ Testing Implementation Details
+```rust
+// Bad - testing internal structure
+#[test]
+fn test_archiver_uses_walkdir_internally() {
+    // Don't test how it's implemented
+}
+
+// Good - testing behavior
+#[test]
+fn test_archiver_finds_all_files_recursively() {
+    // Test what it does, not how
+}
+```
+
+### ❌ Overly Complex Test Setup
+```rust
+// Bad - complex setup obscures intent
+#[test]
+fn test_complex_scenario() {
+    let mut builder = ComplexTestBuilder::new()
+        .with_files(vec![...])
+        .with_git_repo()
+        .with_custom_config()
+        .build();
+    // Test intent is lost in setup
+}
+
+// Good - clear, focused setup
+#[test]
+fn test_git_status_detection() -> anyhow::Result<()> {
+    let env = TestEnvironment::with_git_repo()?;
+    env.create_modified_file("test.rs")?;
+    
+    let result = scan_with_git_status(&env.path)?;
+    
+    assert_eq!(result[0].git_status, Some(GitStatus::Modified));
+    Ok(())
+}
+```
+
+### ❌ Testing Multiple Behaviors in One Test
+```rust
+// Bad - testing multiple things
+#[test]
+fn test_archiver_does_everything() {
+    // Tests filtering AND git integration AND output formatting
+    // If this fails, which part broke?
+}
+
+// Good - one behavior per test
+#[test]
+fn test_archiver_respects_extension_filter() { /* ... */ }
+
+#[test]
+fn test_archiver_includes_git_status() { /* ... */ }
+
+#[test]
+fn test_archiver_formats_json_output() { /* ... */ }
+```
+
+## Advanced TDD Techniques
+
+### Test-Driven API Design
+Let tests drive your API design:
+
+```rust
+// Start with how you want to use the API
+#[test]
+fn test_ideal_api_usage() -> anyhow::Result<()> {
+    let archive = Archive::builder()
+        .from_directory("./src")
+        .include_extensions(&["rs", "toml"])
+        .exclude_patterns(&["**/target/**"])
+        .with_git_status()
+        .build()?;
+    
+    assert!(!archive.is_empty());
+    Ok(())
+}
+```
+
+### Mutation Testing
+Verify your tests catch bugs by introducing deliberate errors:
+
+```bash
+cargo mutants
+# Ensures your tests would catch real bugs
+```
+
+### Test-Driven Documentation
+Use doctests as both documentation and tests:
+
+```rust
+/// Creates an archive from a directory with filtering options.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use code_archiver::{Archive, ArchiveConfig};
+/// 
+/// let config = ArchiveConfig::default()
+///     .with_extensions(vec!["rs".to_string()]);
+/// let archive = Archive::from_config(config)?;
+/// assert!(!archive.is_empty());
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+pub fn from_config(config: ArchiveConfig) -> Result<Archive, ArchiveError> {
+    // Implementation driven by the doctest
+}
+```
+
+## Measuring TDD Success
+
+### Leading Indicators
+- **Test-first commits**: % of commits that include tests before implementation
+- **Red-Green-Refactor cycles**: Average cycle time < 5 minutes
+- **Test coverage trends**: Increasing coverage over time
+
+### Lagging Indicators
+- **Bug escape rate**: Fewer bugs reaching production
+- **Refactoring confidence**: Easier to make changes safely
+- **Development velocity**: Faster feature delivery over time
+
+## Remember: TDD is a Design Tool
+
+TDD isn't just about testing—it's about designing better software:
+
+- **Forces you to think about interfaces first**
+- **Encourages loose coupling and high cohesion**
+- **Creates living documentation of system behavior**
+- **Provides safety net for refactoring**
+- **Builds confidence in code changes**
+
+## The TDD Mindset
+
+> "I'm not writing tests to find bugs. I'm writing tests to design better software and give myself the confidence to change it fearlessly."
+
+When you embrace TDD, you're not just writing code—you're cultivating a healthy code ecosystem where every change is verified, every behavior is documented, and every refactoring is safe.
+
+**Remember**: The goal isn't 100% test coverage. The goal is 100% confidence in your code's behavior.
+
+## Integration with Interview Irodov Toolkit
+
+### Specific TDD Practices for This Project
+
+#### Code-Archiver TDD Flow
+```rust
+// 1. RED: Write failing test for directory scanning
+#[test]
+fn test_recursive_directory_traversal() -> anyhow::Result<()> {
+    let env = TestEnvironment::with_nested_structure()?;
+    let archiver = CodeArchiver::new(default_config())?;
+    
+    let entries = archiver.scan_directory()?;
+    
+    assert_eq!(entries.len(), 5); // Will fail initially
+    Ok(())
+}
+
+// 2. GREEN: Implement minimal scanning
+impl CodeArchiver {
+    fn scan_directory(&self) -> Result<Vec<FileEntry>, ArchiveError> {
+        // Minimal implementation using walkdir
+        Ok(walkdir::WalkDir::new(&self.config.root_dir)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+            .map(|e| FileEntry::from_path(e.path()))
+            .collect::<Result<Vec<_>, _>>()?)
+    }
+}
+
+// 3. REFACTOR: Add filtering, error handling, etc.
+```
+
+#### TS-Compressor TDD Flow
+```rust
+// Test TypeScript compilation behavior
+#[test]
+fn test_typescript_compilation_preserves_functionality() -> anyhow::Result<()> {
+    let input = r#"
+        interface User { name: string; }
+        const user: User = { name: "test" };
+        console.log(user.name);
+    "#;
+    
+    let compiled = compile_typescript(input)?;
+    
+    // Should remove types but preserve logic
+    assert!(compiled.contains("console.log"));
+    assert!(!compiled.contains("interface"));
+    Ok(())
+}
+```
+
+#### File-Splitter TDD Flow
+```rust
+// Test file splitting logic
+#[test]
+fn test_file_splitting_preserves_content() -> anyhow::Result<()> {
+    let original_content = "a".repeat(1000);
+    let temp_file = create_temp_file(&original_content)?;
+    
+    let chunks = split_file(&temp_file, 100)?;
+    
+    let reconstructed = chunks.iter()
+        .map(|chunk| std::fs::read_to_string(chunk))
+        .collect::<Result<Vec<_>, _>>()?
+        .join("");
+    
+    assert_eq!(original_content, reconstructed);
+    Ok(())
+}
+```
+
+### TDD Checklist for Each Task
+
+Before starting any implementation task:
+
+- [ ] **Understand the requirement** from the spec
+- [ ] **Write a failing test** that describes the expected behavior
+- [ ] **Verify the test fails** for the right reason
+- [ ] **Implement minimal code** to make the test pass
+- [ ] **Verify all tests pass**
+- [ ] **Refactor** while keeping tests green
+- [ ] **Add edge case tests** as needed
+- [ ] **Update documentation** with examples
+
+### Continuous Integration with TDD
+
+```bash
+# Pre-commit hook
+#!/bin/bash
+cargo test --all-features || exit 1
+cargo clippy -- -D warnings || exit 1
+cargo fmt -- --check || exit 1
+
+# CI pipeline should enforce:
+# - All tests pass
+# - Coverage thresholds met
+# - No clippy warnings
+# - Code is formatted
+```
+
+This TDD approach ensures that every feature in the Interview Irodov toolkit is:
+- **Thoroughly tested** before implementation
+- **Designed for testability** and maintainability
+- **Safe to refactor** with confidence
+- **Well-documented** through tests and examples

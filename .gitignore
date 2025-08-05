@@ -1,0 +1,27 @@
+# Rust build artifacts
+/target/
+Cargo.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Private data folder - NEVER commit personal Twitter data!
+/private_data/
+private_data/
+
+# Test output directories
+output_*/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Log files
+*.log
