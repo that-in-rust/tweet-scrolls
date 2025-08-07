@@ -345,14 +345,16 @@ mod tests {
     #[test]
     fn test_processed_conversation_creation() {
         let conversation = ProcessedConversation {
-            id: "test-conversation".to_string(),
+            conversation_id: "test-conversation".to_string(),
             message_count: 5,
+            participants: vec!["user1".to_string(), "user2".to_string()],
             first_message_date: Some("2023-01-01T10:00:00.000Z".to_string()),
             last_message_date: Some("2023-01-01T11:00:00.000Z".to_string()),
         };
         
-        assert_eq!(conversation.id, "test-conversation");
+        assert_eq!(conversation.conversation_id, "test-conversation");
         assert_eq!(conversation.message_count, 5);
+        assert_eq!(conversation.participants.len(), 2);
         assert!(conversation.first_message_date.is_some());
         assert!(conversation.last_message_date.is_some());
     }

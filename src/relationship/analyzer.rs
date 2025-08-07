@@ -83,10 +83,14 @@ impl RelationshipAnalyzer {
         let mut users = HashSet::new();
         
         for tweet in tweets {
-            // Add the tweet author (we don't have author ID in current Tweet struct, 
-            // but we can extract from mentions and replies)
+            // Add user being replied to
             if let Some(reply_to_user) = &tweet.in_reply_to_screen_name {
                 users.insert(hash_user_id(reply_to_user));
+            }
+            
+            // Add all mentioned users
+            for mention in &tweet.entities.user_mentions {
+                users.insert(hash_user_id(&mention.screen_name));
             }
         }
         
@@ -239,10 +243,12 @@ impl RelationshipAnalyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::direct_message::{DmConversation, DmMessageCreate};
+    use crate::models::direct_message::{DmConversation, DmMessageCreate, DmMessage};
 
     // Helper function to create sample DM data for testing
     fn create_sample_dm_data() -> Vec<DmWrapper> {
+        use crate::models::direct_message::{DmReaction, DmUrl, DmEditHistory};
+        
         vec![
             DmWrapper {
                 dm_conversation: DmConversation {
@@ -255,6 +261,10 @@ mod tests {
                                 created_at: Some("2023-01-01T10:00:00.000Z".to_string()),
                                 sender_id: Some("3382".to_string()),
                                 recipient_id: Some("1132151165410455552".to_string()),
+                                reactions: vec![],
+                                urls: vec![],
+                                media_urls: vec![],
+                                edit_history: vec![],
                             }),
                         },
                     ],
@@ -271,6 +281,10 @@ mod tests {
                                 created_at: Some("2023-01-01T10:05:00.000Z".to_string()),
                                 sender_id: Some("1132151165410455552".to_string()),
                                 recipient_id: Some("9876543210".to_string()),
+                                reactions: vec![],
+                                urls: vec![],
+                                media_urls: vec![],
+                                edit_history: vec![],
                             }),
                         },
                     ],
@@ -281,26 +295,78 @@ mod tests {
 
     // Helper function to create sample tweet data for testing
     fn create_sample_tweet_data() -> Vec<crate::processing::data_structures::Tweet> {
+        use crate::processing::data_structures::{Tweet, TweetEntities};
+        
         vec![
-            crate::processing::data_structures::Tweet {
+            Tweet {
                 id_str: "tweet1".to_string(),
-                favorite_count: "5".to_string(),
+                id: "tweet1".to_string(),
                 full_text: "Hello world!".to_string(),
-                in_reply_to_status_id: None,
-                retweeted: false,
-                in_reply_to_screen_name: Some("alice".to_string()),
-                retweet_count: "2".to_string(),
                 created_at: "Mon Jan 01 10:00:00 +0000 2023".to_string(),
-            },
-            crate::processing::data_structures::Tweet {
-                id_str: "tweet2".to_string(),
-                favorite_count: "3".to_string(),
-                full_text: "Another tweet".to_string(),
-                in_reply_to_status_id: None,
+                favorite_count: "5".to_string(),
+                retweet_count: "2".to_string(),
                 retweeted: false,
-                in_reply_to_screen_name: Some("bob".to_string()),
-                retweet_count: "1".to_string(),
+                favorited: false,
+                truncated: false,
+                lang: "en".to_string(),
+                source: "<a href=\"http://twitter.com\" rel=\"nofollow\">Twitter Web App</a>".to_string(),
+                display_text_range: vec!["0".to_string(), "12".to_string()],
+                in_reply_to_status_id: None,
+                in_reply_to_status_id_str: None,
+                in_reply_to_user_id: None,
+                in_reply_to_user_id_str: None,
+                in_reply_to_screen_name: Some("alice".to_string()),
+                edit_info: None,
+                entities: TweetEntities {
+                    hashtags: vec![],
+                    symbols: vec![],
+                    user_mentions: vec![
+                        crate::processing::data_structures::UserMention {
+                            screen_name: "bob".to_string(),
+                            name: "Bob".to_string(),
+                            id: "12345".to_string(),
+                            id_str: "12345".to_string(),
+                            indices: vec!["0".to_string(), "0".to_string()],
+                        }
+                    ],
+                    urls: vec![],
+                },
+                possibly_sensitive: None,
+            },
+            Tweet {
+                id_str: "tweet2".to_string(),
+                id: "tweet2".to_string(),
+                full_text: "Another tweet".to_string(),
                 created_at: "Mon Jan 01 11:00:00 +0000 2023".to_string(),
+                favorite_count: "3".to_string(),
+                retweet_count: "1".to_string(),
+                retweeted: false,
+                favorited: false,
+                truncated: false,
+                lang: "en".to_string(),
+                source: "<a href=\"http://twitter.com\" rel=\"nofollow\">Twitter Web App</a>".to_string(),
+                display_text_range: vec!["0".to_string(), "13".to_string()],
+                in_reply_to_status_id: None,
+                in_reply_to_status_id_str: None,
+                in_reply_to_user_id: None,
+                in_reply_to_user_id_str: None,
+                in_reply_to_screen_name: None,
+                edit_info: None,
+                entities: TweetEntities {
+                    hashtags: vec![],
+                    symbols: vec![],
+                    user_mentions: vec![
+                        crate::processing::data_structures::UserMention {
+                            screen_name: "bob".to_string(),
+                            name: "Bob".to_string(),
+                            id: "12345".to_string(),
+                            id_str: "12345".to_string(),
+                            indices: vec!["0".to_string(), "0".to_string()],
+                        }
+                    ],
+                    urls: vec![],
+                },
+                possibly_sensitive: None,
             },
         ]
     }

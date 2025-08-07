@@ -105,10 +105,13 @@ pub fn find_peak_activity_hours(events: &[InteractionEvent]) -> Vec<u32> {
     
     let average_activity = events.len() as f64 / 24.0;
     
+    // Require at least 2 events in the hour to avoid treating single events as peaks
+    const MIN_EVENTS_FOR_PEAK: usize = 2;
+    
     hourly_activity
         .iter()
         .enumerate()
-        .filter(|(_, &count)| count as f64 > average_activity)
+        .filter(|(_, &count)| count as f64 > average_activity && count >= MIN_EVENTS_FOR_PEAK)
         .map(|(hour, _)| hour as u32)
         .collect()
 }
@@ -136,7 +139,8 @@ pub fn calculate_interaction_density(events: &[InteractionEvent], window_hours: 
     
     let window_duration = chrono::Duration::hours(window_hours);
     let total_duration = end_time - start_time;
-    let num_windows = (total_duration.num_hours() / window_hours).max(1) as usize;
+    // +1 so that both the starting and ending window are represented
+    let num_windows = ((total_duration.num_hours() / window_hours) + 1).max(1) as usize;
     
     let mut density = vec![0; num_windows];
     

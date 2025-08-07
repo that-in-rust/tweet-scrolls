@@ -23,6 +23,14 @@ impl LLMFileGenerator {
         }
     }
 
+    /// Create the directory structure for relationship profiles
+    /// 
+    /// Returns the path to the created directory
+    pub async fn create_directory_structure(&self) -> std::io::Result<String> {
+        tokio::fs::create_dir_all(&self.output_dir).await?;
+        Ok(self.output_dir.clone())
+    }
+
     /// Generate all relationship intelligence files
     pub fn generate_all_files(&self, profiles: &[UserProfile], interactions: &[InteractionEvent]) -> Result<()> {
         // Create output directory

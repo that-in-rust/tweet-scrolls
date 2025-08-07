@@ -73,17 +73,34 @@ fn create_realistic_dm_data() -> Vec<models::direct_message::DmWrapper> {
 
 /// Creates realistic Tweet data matching actual Twitter export format
 fn create_realistic_tweet_data() -> Vec<processing::data_structures::TweetWrapper> {
+    use processing::data_structures::*;
+    
     vec![
-        processing::data_structures::TweetWrapper {
-            tweet: processing::data_structures::Tweet {
-                edit_info: None,
+        TweetWrapper {
+            tweet: Tweet {
+                id_str: "1947489885754986818".to_string(),
+                id: "1947489885754986818".to_string(),
+                full_text: "Via @NotebookLM whom I fed thousands of my tweets in txt format for analysis".to_string(),
+                created_at: "Tue Jul 22 02:52:26 +0000 2025".to_string(),
+                favorite_count: "5".to_string(),
+                retweet_count: "0".to_string(),
                 retweeted: false,
+                favorited: false,
+                truncated: false,
+                lang: "en".to_string(),
                 source: "<a href=\"https://mobile.twitter.com\" rel=\"nofollow\">Twitter Web App</a>".to_string(),
-                entities: processing::data_structures::TweetEntities {
+                display_text_range: vec!["0".to_string(), "270".to_string()],
+                in_reply_to_status_id: None,
+                in_reply_to_status_id_str: None,
+                in_reply_to_user_id: None,
+                in_reply_to_user_id_str: None,
+                in_reply_to_screen_name: None,
+                edit_info: None,
+                entities: TweetEntities {
                     hashtags: vec![],
                     symbols: vec![],
                     user_mentions: vec![
-                        processing::data_structures::UserMention {
+                        UserMention {
                             name: "NotebookLM".to_string(),
                             screen_name: "NotebookLM".to_string(),
                             indices: vec!["4".to_string(), "15".to_string()],
@@ -93,32 +110,34 @@ fn create_realistic_tweet_data() -> Vec<processing::data_structures::TweetWrappe
                     ],
                     urls: vec![],
                 },
-                display_text_range: vec!["0".to_string(), "270".to_string()],
-                favorite_count: "5".to_string(),
-                id_str: "1947489885754986818".to_string(),
-                truncated: false,
-                retweet_count: "0".to_string(),
-                id: "1947489885754986818".to_string(),
-                created_at: "Tue Jul 22 02:52:26 +0000 2025".to_string(),
-                favorited: false,
-                full_text: "Via @NotebookLM whom I fed thousands of my tweets in txt format for analysis".to_string(),
-                lang: "en".to_string(),
-                in_reply_to_status_id: None,
-                in_reply_to_status_id_str: None,
-                in_reply_to_user_id: None,
-                in_reply_to_screen_name: None,
+                possibly_sensitive: None,
             }
         },
-        processing::data_structures::TweetWrapper {
-            tweet: processing::data_structures::Tweet {
-                edit_info: None,
+        TweetWrapper {
+            tweet: Tweet {
+                id_str: "1947478130287120782".to_string(),
+                id: "1947478130287120782".to_string(),
+                full_text: "@TnvMadhav Been @dhh @jasonfried fan since I came to twitter in 2021".to_string(),
+                created_at: "Tue Jul 22 02:05:43 +0000 2025".to_string(),
+                favorite_count: "0".to_string(),
+                retweet_count: "0".to_string(),
                 retweeted: false,
+                favorited: false,
+                truncated: false,
+                lang: "en".to_string(),
                 source: "<a href=\"http://twitter.com/download/android\" rel=\"nofollow\">Twitter for Android</a>".to_string(),
-                entities: processing::data_structures::TweetEntities {
+                display_text_range: vec!["0".to_string(), "68".to_string()],
+                in_reply_to_status_id: Some("1947467485424562448".to_string()),
+                in_reply_to_status_id_str: Some("1947467485424562448".to_string()),
+                in_reply_to_user_id: Some("848022794629730304".to_string()),
+                in_reply_to_user_id_str: Some("848022794629730304".to_string()),
+                in_reply_to_screen_name: Some("TnvMadhav".to_string()),
+                edit_info: None,
+                entities: TweetEntities {
                     hashtags: vec![],
                     symbols: vec![],
                     user_mentions: vec![
-                        processing::data_structures::UserMention {
+                        UserMention {
                             name: "TnvMadhav".to_string(),
                             screen_name: "TnvMadhav".to_string(),
                             indices: vec!["0".to_string(), "10".to_string()],
@@ -128,20 +147,7 @@ fn create_realistic_tweet_data() -> Vec<processing::data_structures::TweetWrappe
                     ],
                     urls: vec![],
                 },
-                display_text_range: vec!["0".to_string(), "68".to_string()],
-                favorite_count: "0".to_string(),
-                id_str: "1947478130287120782".to_string(),
-                truncated: false,
-                retweet_count: "0".to_string(),
-                id: "1947478130287120782".to_string(),
-                created_at: "Tue Jul 22 02:05:43 +0000 2025".to_string(),
-                favorited: false,
-                full_text: "@TnvMadhav Been @dhh @jasonfried fan since I came to twitter in 2021".to_string(),
-                lang: "en".to_string(),
-                in_reply_to_status_id: Some("1947467485424562448".to_string()),
-                in_reply_to_status_id_str: Some("1947467485424562448".to_string()),
-                in_reply_to_user_id: Some("848022794629730304".to_string()),
-                in_reply_to_screen_name: Some("TnvMadhav".to_string()),
+                possibly_sensitive: None,
             }
         }
     ]
@@ -243,14 +249,67 @@ async fn test_file_output_generation() {
     // Test CSV output generation
     let threads = tweet_scrolls::processing::tweets::process_tweets_simple(&tweets, "testuser").await.unwrap();
     
-    // This would test the actual file writing functions
-    // Note: These functions need to be made public or we need integration points
+    // Create output directory
+    let timestamp = 1234567890; // Fixed timestamp for testing
+    let output_path = std::path::Path::new(output_dir).join("output_testuser_1234567890");
+    std::fs::create_dir_all(&output_path).unwrap();
     
-    // Verify output directory structure would be created
-    let expected_output_pattern = format!("{}/output_testuser_", output_dir);
-    // In a real test, we'd verify the actual files are created
+    // Write enhanced CSV output
+    let csv_path = output_path.join("threads_testuser_1234567890.csv");
+    let mut csv_writer = tweet_scrolls::utils::enhanced_csv_writer::EnhancedCsvWriter::new(
+        csv_path.to_str().unwrap()
+    ).await.unwrap();
     
-    assert!(true, "File output generation test placeholder - needs actual file I/O testing");
+    for thread in &threads {
+        csv_writer.write_thread(thread, "testuser").await.unwrap();
+    }
+    csv_writer.finalize().await.unwrap();
+    
+    // Verify CSV file was created and has the expected headers
+    assert!(csv_path.exists(), "CSV file was not created");
+    
+    // Read the CSV file and verify its contents
+    let mut rdr = csv::Reader::from_path(&csv_path).unwrap();
+    let headers = rdr.headers().unwrap().clone();
+    
+    // Verify expected headers are present
+    let expected_headers = [
+        "tweet_id", "tweet_text", "tweet_type", "created_at", 
+        "favorite_count", "retweet_count", "thread_id", 
+        "thread_position", "twitter_url", "reply_context"
+    ];
+    
+    for header in &expected_headers {
+        assert!(
+            headers.iter().any(|h| h == *header),
+            "Missing expected header: {}",
+            header
+        );
+    }
+    
+    // Verify at least one record was written
+    let records: Vec<_> = rdr.records().collect::<Result<_, _>>().unwrap();
+    assert!(!records.is_empty(), "No records were written to the CSV");
+    
+    // Verify tweet type and URL are populated
+    for record in records {
+        let tweet_type = record.get(2).unwrap(); // tweet_type column
+        let twitter_url = record.get(8).unwrap(); // twitter_url column
+        
+        // Verify tweet type is one of the expected values
+        assert!(
+            ["Original", "ReplyToUser", "ReplyToOther"].contains(&tweet_type),
+            "Unexpected tweet type: {}",
+            tweet_type
+        );
+        
+        // Verify URL format
+        assert!(
+            twitter_url.starts_with("https://twitter.com/") && twitter_url.ends_with(&format!("/status/{}", record.get(0).unwrap())),
+            "Invalid Twitter URL format: {}",
+            twitter_url
+        );
+    }
 }
 
 #[test]
@@ -501,30 +560,34 @@ fn test_generate_llm_analysis_prompts() {
 // Data Structure Tests
 #[test]
 fn test_tweet_creation() {
-    let tweet = processing::data_structures::Tweet {
-        edit_info: None,
+    use processing::data_structures::{Tweet, TweetEntities};
+    
+    let tweet = Tweet {
+        id_str: "123".to_string(),
+        id: "123".to_string(),
+        full_text: "test tweet".to_string(),
+        created_at: "Mon Jan 01 12:00:00 +0000 2023".to_string(),
+        favorite_count: "0".to_string(),
+        retweet_count: "0".to_string(),
         retweeted: false,
-        source: "test".to_string(),
-        entities: processing::data_structures::TweetEntities {
+        favorited: false,
+        truncated: false,
+        lang: "en".to_string(),
+        source: "<a href=\"http://twitter.com\" rel=\"nofollow\">Twitter Web App</a>".to_string(),
+        display_text_range: vec!["0".to_string(), "10".to_string()],
+        in_reply_to_status_id: None,
+        in_reply_to_status_id_str: None,
+        in_reply_to_user_id: None,
+        in_reply_to_user_id_str: None,
+        in_reply_to_screen_name: None,
+        edit_info: None,
+        entities: TweetEntities {
             hashtags: vec![],
             symbols: vec![],
             user_mentions: vec![],
             urls: vec![],
         },
-        display_text_range: vec!["0".to_string(), "10".to_string()],
-        favorite_count: "0".to_string(),
-        id_str: "123".to_string(),
-        truncated: false,
-        retweet_count: "0".to_string(),
-        id: "123".to_string(),
-        created_at: "test".to_string(),
-        favorited: false,
-        full_text: "test tweet".to_string(),
-        lang: "en".to_string(),
-        in_reply_to_status_id: None,
-        in_reply_to_status_id_str: None,
-        in_reply_to_user_id: None,
-        in_reply_to_screen_name: None,
+        possibly_sensitive: None,
     };
     
     assert_eq!(tweet.full_text, "test tweet");
@@ -534,30 +597,34 @@ fn test_tweet_creation() {
 
 #[test]
 fn test_thread_creation() {
-    let tweet = processing::data_structures::Tweet {
-        edit_info: None,
+    use processing::data_structures::{Tweet, TweetEntities, Thread};
+    
+    let tweet = Tweet {
+        id_str: "123".to_string(),
+        id: "123".to_string(),
+        full_text: "test tweet".to_string(),
+        created_at: "Mon Jan 01 12:00:00 +0000 2023".to_string(),
+        favorite_count: "0".to_string(),
+        retweet_count: "0".to_string(),
         retweeted: false,
-        source: "test".to_string(),
-        entities: processing::data_structures::TweetEntities {
+        favorited: false,
+        truncated: false,
+        lang: "en".to_string(),
+        source: "<a href=\"http://twitter.com\" rel=\"nofollow\">Twitter Web App</a>".to_string(),
+        display_text_range: vec!["0".to_string(), "10".to_string()],
+        in_reply_to_status_id: None,
+        in_reply_to_status_id_str: None,
+        in_reply_to_user_id: None,
+        in_reply_to_user_id_str: None,
+        in_reply_to_screen_name: None,
+        edit_info: None,
+        entities: TweetEntities {
             hashtags: vec![],
             symbols: vec![],
             user_mentions: vec![],
             urls: vec![],
         },
-        display_text_range: vec!["0".to_string(), "10".to_string()],
-        favorite_count: "0".to_string(),
-        id_str: "123".to_string(),
-        truncated: false,
-        retweet_count: "0".to_string(),
-        id: "123".to_string(),
-        created_at: "test".to_string(),
-        favorited: false,
-        full_text: "test tweet".to_string(),
-        lang: "en".to_string(),
-        in_reply_to_status_id: None,
-        in_reply_to_status_id_str: None,
-        in_reply_to_user_id: None,
-        in_reply_to_screen_name: None,
+        possibly_sensitive: None,
     };
     
     let thread = processing::data_structures::Thread {

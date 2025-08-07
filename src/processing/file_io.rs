@@ -111,15 +111,32 @@ pub async fn write_csv(
     Ok(())
 }
 
-/// Gets user input with a prompt
-pub fn prompt_input(prompt: &str) -> Result<String> {
-    use std::io::{self, Write};
-    
+/// Reads user input from any `BufRead` source.
+///
+/// This indirection allows us to inject a mock reader in tests so that
+/// the function does **not** block waiting for interactive input in CI
+/// or during automated `cargo test` runs.
+fn prompt_input_from_reader<R: std::io::BufRead>(reader: &mut R, prompt: &str) -> Result<String> {
+    use std::io::Write;
+
+    // Print the prompt to stdout so that interactive usage remains unchanged.
     print!("{}", prompt);
-    io::stdout().flush().context("Failed to flush stdout")?;
+    std::io::stdout().flush().context("Failed to flush stdout")?;
+
     let mut input = String::new();
-    io::stdin().read_line(&mut input).context("Failed to read input")?;
+    reader.read_line(&mut input).context("Failed to read input")?;
     Ok(input.trim().to_string())
+}
+
+/// Gets user input with a prompt using `stdin` as the source. This wrapper
+/// keeps the original public API intact for production usage while delegating
+/// to the injectable function above for easier testing.
+pub fn prompt_input(prompt: &str) -> Result<String> {
+    use std::io::{self, BufRead};
+
+    let stdin = io::stdin();
+    let mut handle = stdin.lock();
+    prompt_input_from_reader(&mut handle, prompt)
 }
 
 /// Gets input file path from user
@@ -155,25 +172,45 @@ mod tests {
 
     #[tokio::test]
     async fn test_write_threads_to_file() {
-        use super::super::data_structures::{Tweet, Thread};
+        use super::super::data_structures::{Tweet, Thread, TweetEntities};
         
         let temp_dir = tempdir().unwrap();
         let output_dir = temp_dir.path();
         
         let tweet = Tweet {
             id_str: "123".to_string(),
-            favorite_count: "5".to_string(),
+            id: "123".to_string(),
             full_text: "Test tweet".to_string(),
-            in_reply_to_status_id: None,
-            retweeted: false,
-            in_reply_to_screen_name: None,
-            retweet_count: "2".to_string(),
             created_at: "Mon Jan 01 12:00:00 +0000 2023".to_string(),
+            favorite_count: "5".to_string(),
+            retweet_count: "2".to_string(),
+            retweeted: false,
+            favorited: false,
+            truncated: false,
+            lang: "en".to_string(),
+            source: "<a href=\"http://twitter.com\" rel=\"nofollow\">Twitter Web App</a>".to_string(),
+            display_text_range: vec!["0".to_string(), "10".to_string()],
+            in_reply_to_status_id: None,
+            in_reply_to_status_id_str: None,
+            in_reply_to_user_id: None,
+            in_reply_to_user_id_str: None,
+            in_reply_to_screen_name: None,
+            edit_info: None,
+            entities: TweetEntities {
+                hashtags: vec![],
+                symbols: vec![],
+                user_mentions: vec![],
+                urls: vec![],
+            },
+            possibly_sensitive: None,
         };
 
         let thread = Thread {
             id: "thread_123".to_string(),
             tweets: vec![tweet],
+            favorite_count: 5,
+            retweet_count: 2,
+            tweet_count: 1,
         };
 
         let result = write_threads_to_file(&[thread], "testuser", 1234567890, output_dir).await;
@@ -185,8 +222,16 @@ mod tests {
 
     #[test]
     fn test_input_functions() {
-        // These functions require user input, so we test their structure
-        assert!(get_input_file().is_err() || get_input_file().is_ok());
-        assert!(get_dm_file().is_err() || get_dm_file().is_ok());
+        use std::io::Cursor;
+
+        // Simulate providing a tweets.js path and ensure the function returns it.
+        let mut tweets_reader = Cursor::new("path/to/tweets.js\n");
+        let tweets = prompt_input_from_reader(&mut tweets_reader, "Enter path: ").unwrap();
+        assert_eq!(tweets, "path/to/tweets.js");
+
+        // Simulate pressing Enter (empty input) for the optional DM file.
+        let mut dm_reader = Cursor::new("\n");
+        let dm = prompt_input_from_reader(&mut dm_reader, "Enter DM path: ").unwrap();
+        assert_eq!(dm, "");
     }
 }

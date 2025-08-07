@@ -176,6 +176,10 @@ mod tests {
                 created_at: Some(created_at.to_string()),
                 sender_id: sender_id.map(|s| s.to_string()),
                 recipient_id: Some("recipient".to_string()),
+                reactions: vec![],
+                urls: vec![],
+                media_urls: vec![],
+                edit_history: vec![],
             }),
         }
     }
@@ -244,6 +248,8 @@ mod tests {
 
     #[test]
     fn test_invalid_timestamps() {
+        use crate::models::direct_message::{DmReaction, DmUrl, DmEditHistory};
+        
         let messages = vec![
             DmMessage {
                 message_create: Some(DmMessageCreate {
@@ -252,6 +258,10 @@ mod tests {
                     created_at: Some("invalid-timestamp".to_string()), // Invalid timestamp
                     sender_id: Some("user1".to_string()),
                     recipient_id: Some("user2".to_string()),
+                    reactions: vec![],
+                    urls: vec![],
+                    media_urls: vec![],
+                    edit_history: vec![],
                 }),
             }
         ];

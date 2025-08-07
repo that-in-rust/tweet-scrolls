@@ -5,17 +5,20 @@
 
 use anyhow::{Context, Result};
 use chrono::Utc;
-use std::path::Path;
+use mimalloc::MiMalloc;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use tokio::fs as async_fs;
 use tokio::sync::mpsc as async_mpsc;
+use tweet_scrolls::processing::data_structures::Thread;
 
 // Import our modular components
 use tweet_scrolls::processing::{
-    CsvWriter, MvpAnalyzer,
+    MvpAnalyzer,
     file_io::{get_input_file, get_dm_file},
     tweets::process_tweets,
     direct_messages::process_dm_file,
-    data_structures::{TweetWrapper, Thread},
+    data_structures::TweetWrapper,
 };
 use tweet_scrolls::models::direct_message::DmWrapper;
 
@@ -57,20 +60,9 @@ async fn main() -> Result<()> {
     let output_dir = input_path.parent().unwrap().join(format!("output_{}_{}", screen_name, timestamp));
     async_fs::create_dir_all(&output_dir).await.context("Failed to create output directory")?;
 
-    // Create a channel for CsvWriter
-    let (tx, rx) = async_mpsc::channel::<Vec<String>>(100);
-
-    // Initialize CsvWriter and spawn its run task
-    let csv_writer = CsvWriter::new(
-        output_dir.join(format!("threads_{}_{}.csv", screen_name, timestamp)).to_str().unwrap().to_string(), 
-        rx, 
-        100
-    );
-    tokio::spawn(csv_writer.run());
-
-    // Process tweets
+    // Process tweets with enhanced CSV output
     println!("🌟 Avengers, assemble! Initiating Operation: Tweet Processing...");
-    if let Err(e) = process_tweets(&input_file, &screen_name, tx, &output_dir, timestamp).await {
+    if let Err(e) = process_tweets(&input_file, &screen_name, &output_dir, timestamp).await {
         eprintln!("🚨 Mission Failed: {}", e);
     } else {
         println!("🎉 Victory! Tweets have been successfully processed and organized.");

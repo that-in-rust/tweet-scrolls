@@ -30,7 +30,7 @@ fn add_prompts_header(output: &mut String) {
 fn add_relationship_health_prompts(output: &mut String) {
     output.push_str("RELATIONSHIP HEALTH ANALYSIS\n");
     output.push_str("---------------------------\n");
-    output.push_str("1. Which relationships need more attention based on interaction frequency and recency?\n");
+    output.push_str("1. Which relationships need more attention?\n");
     output.push_str("2. Are there any relationships showing declining engagement over time?\n");
     output.push_str("3. Which relationships have the most balanced communication patterns?\n");
     output.push_str("4. What relationships show the strongest consistency in interaction?\n\n");

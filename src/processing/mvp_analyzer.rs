@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs as async_fs;
 
-use super::data_structures::Thread;
+use super::data_structures::{Thread, Tweet, TweetEntities, UserMention, EditInfo, EditInitial};
 use crate::models::direct_message::DmWrapper;
 
 /// Simple relationship statistics
@@ -294,7 +294,7 @@ impl MvpAnalyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::processing::data_structures::{TweetWrapper, TweetEntities, UserMention, EditInfo, EditInitial};
+    use crate::processing::data_structures::TweetWrapper;
 
     fn create_test_tweet(id: &str, text: &str, mentions: Vec<&str>, created_at: &str) -> Tweet {
         Tweet {
@@ -316,12 +316,12 @@ mod tests {
             in_reply_to_user_id_str: None,
             in_reply_to_screen_name: None,
             edit_info: Some(EditInfo {
-                initial: EditInitial {
+                initial: Some(EditInitial {
                     edit_tweet_ids: vec![id.to_string()],
                     editable_until: "2025-01-01T00:00:00.000Z".to_string(),
                     edits_remaining: "5".to_string(),
                     is_edit_eligible: false,
-                }
+                })
             }),
             entities: TweetEntities {
                 hashtags: vec![],

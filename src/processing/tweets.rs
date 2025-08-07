@@ -10,16 +10,16 @@ use tokio::fs as async_fs;
 use tokio::sync::mpsc as async_mpsc;
 use tokio::task;
 
-use super::data_structures::{Tweet, TweetWrapper, Thread};
-use super::file_io::{write_threads_to_file, write_csv};
+use super::data_structures::{Tweet, TweetEntities, TweetWrapper, Thread};
+use super::file_io::write_threads_to_file;
+use crate::utils::enhanced_csv_writer::EnhancedCsvWriter;
 
 /// Processes tweets from a JSON file and generates output files
 pub async fn process_tweets(
     input_file: &str, 
     screen_name: &str, 
-    csv_tx: async_mpsc::Sender<Vec<String>>, 
     output_dir: &Path, 
-    _timestamp: i64
+    timestamp: i64
 ) -> Result<()> {
     let screen_name = screen_name.to_string(); // Clone to own the String
 
@@ -96,9 +96,16 @@ pub async fn process_tweets(
         }
     }).collect();
 
-    // Handle writing to files
+    // Write text output
     write_threads_to_file(&threads, &screen_name, timestamp, output_dir).await?;
-    write_csv(&threads, &screen_name, timestamp, csv_tx).await?;
+    
+    // Write enhanced CSV output with tweet types and URLs
+    let csv_path = output_dir.join(format!("threads_{}_{}.csv", screen_name, timestamp));
+    let mut csv_writer = EnhancedCsvWriter::new(csv_path.to_str().unwrap()).await?;
+    for thread in &threads {
+        csv_writer.write_thread(thread, &screen_name).await?;
+    }
+    csv_writer.finalize().await?;
 
     let end_datetime = Local::now();
     let end_time = Instant::now();
@@ -141,16 +148,14 @@ mod tests {
     async fn test_tweet_processing_structure() {
         // Test that the function signature is correct
         let temp_dir = tempdir().unwrap();
-        let output_dir = temp_dir.path();
-        let (tx, _rx) = async_mpsc::channel::<Vec<String>>(10);
+        let output_dir = temp_dir.path().to_path_buf();
         
         // This would fail with actual processing due to missing file,
         // but tests the function signature and basic structure
         let result = process_tweets(
             "nonexistent_file.js",
             "testuser",
-            tx,
-            output_dir,
+            &output_dir,
             1234567890
         ).await;
         
@@ -163,24 +168,58 @@ mod tests {
         // Test the core logic for creating threads from tweets
         let tweet1 = Tweet {
             id_str: "1".to_string(),
-            favorite_count: "5".to_string(),
+            id: "1".to_string(),
             full_text: "First tweet".to_string(),
-            in_reply_to_status_id: None,
-            retweeted: false,
-            in_reply_to_screen_name: None,
-            retweet_count: "2".to_string(),
             created_at: "Mon Jan 01 12:00:00 +0000 2023".to_string(),
+            favorite_count: "5".to_string(),
+            retweet_count: "2".to_string(),
+            retweeted: false,
+            favorited: false,
+            truncated: false,
+            lang: "en".to_string(),
+            source: "<a href=\"http://twitter.com\" rel=\"nofollow\">Twitter Web App</a>".to_string(),
+            display_text_range: vec!["0".to_string(), "11".to_string()],
+            in_reply_to_status_id: None,
+            in_reply_to_status_id_str: None,
+            in_reply_to_user_id: None,
+            in_reply_to_user_id_str: None,
+            in_reply_to_screen_name: None,
+            edit_info: None,
+            entities: TweetEntities {
+                hashtags: vec![],
+                symbols: vec![],
+                user_mentions: vec![],
+                urls: vec![],
+            },
+            possibly_sensitive: None,
         };
 
         let tweet2 = Tweet {
             id_str: "2".to_string(),
-            favorite_count: "3".to_string(),
+            id: "2".to_string(),
             full_text: "Reply tweet".to_string(),
-            in_reply_to_status_id: Some("1".to_string()),
-            retweeted: false,
-            in_reply_to_screen_name: Some("testuser".to_string()),
-            retweet_count: "1".to_string(),
             created_at: "Mon Jan 01 12:05:00 +0000 2023".to_string(),
+            favorite_count: "3".to_string(),
+            retweet_count: "1".to_string(),
+            retweeted: false,
+            favorited: false,
+            truncated: false,
+            lang: "en".to_string(),
+            source: "<a href=\"http://twitter.com\" rel=\"nofollow\">Twitter Web App</a>".to_string(),
+            display_text_range: vec!["0".to_string(), "12".to_string()],
+            in_reply_to_status_id: Some("1".to_string()),
+            in_reply_to_status_id_str: Some("1".to_string()),
+            in_reply_to_user_id: Some("12345".to_string()),
+            in_reply_to_user_id_str: Some("12345".to_string()),
+            in_reply_to_screen_name: Some("testuser".to_string()),
+            edit_info: None,
+            entities: TweetEntities {
+                hashtags: vec![],
+                symbols: vec![],
+                user_mentions: vec![],
+                urls: vec![],
+            },
+            possibly_sensitive: None,
         };
 
         // Test that tweets can be organized into threads
@@ -195,24 +234,58 @@ mod tests {
     fn test_tweet_filtering_logic() {
         let retweet = Tweet {
             id_str: "1".to_string(),
-            favorite_count: "5".to_string(),
+            id: "1".to_string(),
             full_text: "RT @someone: Original tweet".to_string(),
-            in_reply_to_status_id: None,
-            retweeted: true, // This should be filtered out
-            in_reply_to_screen_name: None,
-            retweet_count: "2".to_string(),
             created_at: "Mon Jan 01 12:00:00 +0000 2023".to_string(),
+            favorite_count: "5".to_string(),
+            retweet_count: "2".to_string(),
+            retweeted: true, // This should be filtered out
+            favorited: false,
+            truncated: false,
+            lang: "en".to_string(),
+            source: "<a href=\"http://twitter.com\" rel=\"nofollow\">Twitter Web App</a>".to_string(),
+            display_text_range: vec!["0".to_string(), "30".to_string()],
+            in_reply_to_status_id: None,
+            in_reply_to_status_id_str: None,
+            in_reply_to_user_id: None,
+            in_reply_to_user_id_str: None,
+            in_reply_to_screen_name: None,
+            edit_info: None,
+            entities: TweetEntities {
+                hashtags: vec![],
+                symbols: vec![],
+                user_mentions: vec![],
+                urls: vec![],
+            },
+            possibly_sensitive: None,
         };
 
         let original_tweet = Tweet {
             id_str: "2".to_string(),
-            favorite_count: "3".to_string(),
+            id: "2".to_string(),
             full_text: "Original tweet".to_string(),
-            in_reply_to_status_id: None,
-            retweeted: false, // This should be kept
-            in_reply_to_screen_name: None,
-            retweet_count: "1".to_string(),
             created_at: "Mon Jan 01 12:05:00 +0000 2023".to_string(),
+            favorite_count: "3".to_string(),
+            retweet_count: "1".to_string(),
+            retweeted: false, // This should be kept
+            favorited: false,
+            truncated: false,
+            lang: "en".to_string(),
+            source: "<a href=\"http://twitter.com\" rel=\"nofollow\">Twitter Web App</a>".to_string(),
+            display_text_range: vec!["0".to_string(), "15".to_string()],
+            in_reply_to_status_id: None,
+            in_reply_to_status_id_str: None,
+            in_reply_to_user_id: None,
+            in_reply_to_user_id_str: None,
+            in_reply_to_screen_name: None,
+            edit_info: None,
+            entities: TweetEntities {
+                hashtags: vec![],
+                symbols: vec![],
+                user_mentions: vec![],
+                urls: vec![],
+            },
+            possibly_sensitive: None,
         };
 
         let mut tweets = vec![retweet, original_tweet];

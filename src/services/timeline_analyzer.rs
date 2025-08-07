@@ -2,6 +2,7 @@
 
 use chrono::{DateTime, Datelike, Timelike, Utc, Weekday};
 use std::collections::{HashMap, HashSet};
+use crate::models::interaction::InteractionType;
 
 use crate::models::interaction::InteractionEvent;
 use crate::models::statistics::calculate_percentiles;
