@@ -6,13 +6,13 @@
 //! - Clean, readable output
 
 use anyhow::Result;
-use chrono::{DateTime, Datelike, Timelike, Utc};
+use chrono::{DateTime, Timelike};
 use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs as async_fs;
 
-use super::data_structures::{Tweet, Thread};
-use crate::models::direct_message::{DmWrapper, DmConversation};
+use super::data_structures::Thread;
+use crate::models::direct_message::DmWrapper;
 
 /// Simple relationship statistics
 #[derive(Debug, Clone)]

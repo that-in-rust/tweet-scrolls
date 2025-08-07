@@ -12,7 +12,7 @@ use tokio::sync::mpsc as async_mpsc;
 // Import our modular components
 use tweet_scrolls::processing::{
     CsvWriter, MvpAnalyzer,
-    file_io::{get_input_file, get_screen_name, get_dm_file},
+    file_io::{get_input_file, get_dm_file},
     tweets::process_tweets,
     direct_messages::process_dm_file,
     data_structures::{TweetWrapper, Thread},
@@ -36,14 +36,13 @@ async fn main() -> Result<()> {
     
     // Get user input with clear examples
     println!("📋 This tool processes Twitter export files from your downloaded archive.");
-    println!("💡 Example files you should have:");
-    println!("   • tweets.js (contains all your tweets)");
-    println!("   • direct-messages.js (contains your DM conversations)");
-    println!("   • direct-message-headers.js (contains DM metadata)");
+    println!("💡 Files we'll analyze:");
+    println!("   • tweets.js (required - contains all your tweets)");
+    println!("   • direct-messages.js (optional - contains your DM conversations)");
     println!("");
     
     let input_file = get_input_file()?;
-    let screen_name = get_screen_name()?;
+    let screen_name = "user".to_string(); // Generic name, we'll extract real handle from data if needed
     let timestamp = Utc::now().timestamp();
 
     println!("🕶️ Current working directory: {}", std::env::current_dir()?.display());
@@ -87,18 +86,12 @@ async fn main() -> Result<()> {
         }
     }
 
-    // Optional relationship intelligence analysis
-    println!("🧠 Would you like to generate relationship intelligence profiles? (y/n)");
-    let mut input = String::new();
-    std::io::stdin().read_line(&mut input)?;
-    
-    if input.trim().to_lowercase() == "y" {
-        println!("🔍 Initiating Relationship Intelligence Analysis...");
-        if let Err(e) = perform_relationship_analysis(&screen_name, &output_dir, timestamp).await {
-            eprintln!("🚨 Relationship Analysis Failed: {}", e);
-        } else {
-            println!("🎯 Relationship intelligence analysis completed successfully!");
-        }
+    // Automatically run relationship intelligence analysis
+    println!("🔍 Initiating Relationship Intelligence Analysis...");
+    if let Err(e) = perform_relationship_analysis(&screen_name, &output_dir, timestamp).await {
+        eprintln!("🚨 Relationship Analysis Failed: {}", e);
+    } else {
+        println!("🎯 Relationship intelligence analysis completed successfully!");
     }
 
     println!("✨ All operations completed successfully! Check the output directory for results.");

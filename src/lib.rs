@@ -10,6 +10,7 @@ pub mod services;
 pub mod utils;
 pub mod processing;
 pub mod relationship;
+pub mod main_integration;
 
 // Re-exports for common types
 pub use models::interaction::*;

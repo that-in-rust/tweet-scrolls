@@ -7,6 +7,14 @@ edition = "2021"
 name = "tweet-scrolls"
 path = "src/main.rs"
 
+[[bin]]
+name = "test_dm_headers"
+path = "src/bin/test_dm_headers.rs"
+
+[[bin]]
+name = "tweet_coverage_analysis"
+path = "src/bin/tweet_coverage_analysis.rs"
+
 [dependencies]
 anyhow = "1.0"
 chrono = { version = "0.4", features = ["serde"] }

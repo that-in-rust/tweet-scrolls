@@ -5,7 +5,6 @@ use csv::Writer as CsvWriterLib;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
-use tokio::fs as async_fs;
 use tokio::sync::mpsc as async_mpsc;
 
 use super::data_structures::{CsvWriter, Thread};
@@ -125,29 +124,11 @@ pub fn prompt_input(prompt: &str) -> Result<String> {
 
 /// Gets input file path from user
 pub fn get_input_file() -> Result<String> {
-    println!("🗂️ TWEETS FILE REQUIRED:");
-    println!("   Example: /path/to/your/twitter-export/data/tweets.js");
-    println!("   This file contains all your tweets and replies");
-    println!("");
-    prompt_input("📁 Enter the full path to your tweets.js file: ")
-}
-
-/// Gets screen name from user
-pub fn get_screen_name() -> Result<String> {
-    println!("🕵️‍♂️ TWITTER HANDLE:");
-    println!("   Enter your Twitter username (without the @)");
-    println!("   Example: if your Twitter is @johndoe, enter: johndoe");
-    println!("");
-    prompt_input("👤 Enter your Twitter handle: ")
+    prompt_input("📁 Enter path to your tweets.js file: ")
 }
 
 /// Gets optional DM file path from user
 pub fn get_dm_file() -> Result<Option<String>> {
-    println!("📱 DIRECT MESSAGES FILE (OPTIONAL):");
-    println!("   Example: /path/to/your/twitter-export/data/direct-messages.js");
-    println!("   This file contains your private message conversations");
-    println!("   Press Enter to skip if you don't want DM analysis");
-    println!("");
     let input = prompt_input("💬 Enter path to direct-messages.js (or press Enter to skip): ")?;
     if input.is_empty() {
         Ok(None)
@@ -206,7 +187,6 @@ mod tests {
     fn test_input_functions() {
         // These functions require user input, so we test their structure
         assert!(get_input_file().is_err() || get_input_file().is_ok());
-        assert!(get_screen_name().is_err() || get_screen_name().is_ok());
         assert!(get_dm_file().is_err() || get_dm_file().is_ok());
     }
 }

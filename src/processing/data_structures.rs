@@ -42,7 +42,8 @@ pub struct Tweet {
 /// Edit information for tweets
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct EditInfo {
-    pub initial: EditInitial,
+    #[serde(default)]
+    pub initial: Option<EditInitial>,
 }
 
 /// Initial edit information

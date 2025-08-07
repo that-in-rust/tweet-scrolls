@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
 /// Represents a direct message in a conversation
@@ -36,7 +35,7 @@ pub struct DmMessageCreate {
     pub media_urls: Vec<String>,
     /// Edit history for this message
     #[serde(rename = "editHistory", default)]
-    pub edit_history: Vec<String>,
+    pub edit_history: Vec<DmEditHistory>,
 }
 
 /// Represents a reaction to a direct message
@@ -44,16 +43,16 @@ pub struct DmMessageCreate {
 pub struct DmReaction {
     /// The ID of the user who sent the reaction
     #[serde(rename = "senderId")]
-    pub sender_id: String,
+    pub sender_id: Option<String>,
     /// The type of reaction (like, excited, etc.)
     #[serde(rename = "reactionKey")]
-    pub reaction_key: String,
+    pub reaction_key: Option<String>,
     /// The event ID for this reaction
     #[serde(rename = "eventId")]
-    pub event_id: String,
+    pub event_id: Option<String>,
     /// When the reaction was created
     #[serde(rename = "createdAt")]
-    pub created_at: String,
+    pub created_at: Option<String>,
 }
 
 /// Represents a URL in a direct message
@@ -65,6 +64,17 @@ pub struct DmUrl {
     pub expanded: String,
     /// The display text for the URL
     pub display: String,
+}
+
+/// Represents an edit history entry for a direct message
+#[derive(Debug, Deserialize)]
+pub struct DmEditHistory {
+    /// When the edit was made (Unix timestamp as string)
+    #[serde(rename = "createdAtSec")]
+    pub created_at_sec: Option<String>,
+    /// The edited text content
+    #[serde(rename = "editedText")]
+    pub edited_text: Option<String>,
 }
 
 /// Represents a DM conversation wrapper from the Twitter archive

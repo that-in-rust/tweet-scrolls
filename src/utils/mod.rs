@@ -1,9 +1,13 @@
 //! Utility functions and helpers
 
+pub mod enhanced_csv_writer;
+pub mod schema_discovery;
+pub mod tweet_classifier;
+
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use std::fs::File;
-use std::io::{self, BufReader, Read};
+use std::io::{BufReader, Read};
 use std::path::Path;
 
 /// Reads a file into a string with proper error context

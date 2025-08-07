@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 use chrono::{DateTime, Utc};
 use crate::models::{
-    direct_message::{DmWrapper, DmMessage},
+    direct_message::DmWrapper,
     interaction::InteractionEvent,
     profile::UserProfile,
 };

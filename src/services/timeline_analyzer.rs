@@ -1,9 +1,9 @@
 //! Timeline analysis service for the Tweet-Scrolls application
 
-use chrono::{DateTime, Datelike, Duration, Timelike, Utc, Weekday};
+use chrono::{DateTime, Datelike, Timelike, Utc, Weekday};
 use std::collections::{HashMap, HashSet};
 
-use crate::models::interaction::{InteractionEvent, InteractionType};
+use crate::models::interaction::InteractionEvent;
 use crate::models::statistics::calculate_percentiles;
 use crate::models::timeline::{
     ResponseTimeStats, TimelineAnalysis, TimelineDensity, TimelinePattern,
