@@ -1,0 +1,86 @@
+use chrono::{DateTime, Utc};
+use serde::Deserialize;
+
+/// Represents a direct message in a conversation
+#[derive(Debug, Deserialize)]
+pub struct DmMessage {
+    /// The message creation details
+    #[serde(rename = "messageCreate")]
+    pub message_create: Option<DmMessageCreate>,
+}
+
+/// Represents the creation details of a direct message
+#[derive(Debug, Deserialize)]
+pub struct DmMessageCreate {
+    /// The unique identifier for the message
+    pub id: Option<String>,
+    /// The text content of the message
+    pub text: Option<String>,
+    /// When the message was created (ISO 8601 format)
+    #[serde(rename = "createdAt")]
+    pub created_at: Option<String>,
+    /// The ID of the user who sent the message
+    #[serde(rename = "senderId")]
+    pub sender_id: Option<String>,
+    /// The ID of the recipient user
+    #[serde(rename = "recipientId")]
+    pub recipient_id: Option<String>,
+    /// Reactions to this message
+    #[serde(default)]
+    pub reactions: Vec<DmReaction>,
+    /// URLs in this message
+    #[serde(default)]
+    pub urls: Vec<DmUrl>,
+    /// Media URLs in this message
+    #[serde(rename = "mediaUrls", default)]
+    pub media_urls: Vec<String>,
+    /// Edit history for this message
+    #[serde(rename = "editHistory", default)]
+    pub edit_history: Vec<String>,
+}
+
+/// Represents a reaction to a direct message
+#[derive(Debug, Deserialize)]
+pub struct DmReaction {
+    /// The ID of the user who sent the reaction
+    #[serde(rename = "senderId")]
+    pub sender_id: String,
+    /// The type of reaction (like, excited, etc.)
+    #[serde(rename = "reactionKey")]
+    pub reaction_key: String,
+    /// The event ID for this reaction
+    #[serde(rename = "eventId")]
+    pub event_id: String,
+    /// When the reaction was created
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+}
+
+/// Represents a URL in a direct message
+#[derive(Debug, Deserialize)]
+pub struct DmUrl {
+    /// The shortened URL
+    pub url: String,
+    /// The expanded/full URL
+    pub expanded: String,
+    /// The display text for the URL
+    pub display: String,
+}
+
+/// Represents a DM conversation wrapper from the Twitter archive
+#[derive(Debug, Deserialize)]
+pub struct DmWrapper {
+    /// The conversation details
+    #[serde(rename = "dmConversation")]
+    pub dm_conversation: DmConversation,
+}
+
+/// Represents a DM conversation
+#[derive(Debug, Deserialize)]
+pub struct DmConversation {
+    /// The conversation ID (format: "user1-user2")
+    #[serde(rename = "conversationId")]
+    pub conversation_id: String,
+    /// The messages in the conversation
+    pub messages: Vec<DmMessage>,
+}

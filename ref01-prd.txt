@@ -12,7 +12,21 @@ Transform Twitter archive data into actionable relationship intelligence through
 - Filter out retweets and irrelevant replies
 - Sort threads chronologically in reverse order (newest first)
 
-### 1.2 Direct Message Processing (Existing)
+### 1.2 Timeline Analysis (New)
+- **Temporal Pattern Detection**
+  - Identify active hours based on interaction frequency
+  - Detect weekly patterns in user activity
+  - Identify bursty periods of high activity
+- **Response Time Analysis**
+  - Calculate average, median, and percentile response times
+  - Track response time trends over time
+  - Identify optimal response windows
+- **Interaction Density**
+  - Visualize interaction patterns across time
+  - Identify peak activity periods
+  - Measure conversation intensity over time
+
+### 1.3 Direct Message Processing (Existing)
 - Parse DM conversations with JavaScript prefix removal
 - Extract conversation metadata and participant information
 - Process reaction data and response timing patterns

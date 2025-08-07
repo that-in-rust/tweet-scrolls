@@ -9,11 +9,21 @@ Tweet-Scrolls is a Rust CLI tool that processes Twitter JSON archive files to ex
 - Focuses on thread reconstruction and conversation flow analysis
 
 ## Key Features
-- Thread weaving: Connects reply chains into complete conversations
-- Temporal organization: Chronological sorting (newest first)
-- Dual output formats: CSV for analysis, TXT for reading
-- Engagement metrics: Tracks likes, retweets, and thread statistics
-- Performance optimized: Async processing with buffered I/O
+- **Thread Weaving**: Reconstructs reply chains into complete conversations
+- **Temporal Analysis**: Identifies patterns in interaction timing
+  - Active hours detection (identifies peak interaction times)
+  - Weekly patterns (most active days of the week)
+  - Bursty activity detection (periods of high activity)
+- **Conversation Metrics**:
+  - Response time statistics (average, median, percentiles)
+  - Interaction density analysis
+  - Participant engagement levels
+- **Dual Output Formats**: 
+  - CSV for data analysis
+  - TXT for human-readable reports
+- **Performance Optimized**: 
+  - Async processing with buffered I/O
+  - Efficient memory usage with streaming where possible
 
 ## Target Users
 - Twitter power users wanting to organize their archives

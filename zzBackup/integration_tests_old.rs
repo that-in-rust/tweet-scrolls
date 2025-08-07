@@ -1411,3 +1411,600 @@ mod tests {
         assert!(timeline[1].timestamp > timeline[2].timestamp);
     }
 }
+
+    // Write CSV file
+    let csv_path = output_dir.join(format!("dm_conversations_{}_{}.csv", _screen_name, _timestamp));
+    let csv_file = File::create(&csv_path)?;
+    let mut csv_writer = CsvWriterLib::from_writer(BufWriter::new(csv_file));
+    
+    csv_writer.write_record(&[
+        "Conversation ID",
+        "Message Count", 
+        "First Message Date",
+        "Last Message Date",
+    ])?;
+    
+    for conv in &conversations {
+        csv_writer.write_record(&[
+            &conv.id,
+            &conv.message_count.to_string(),
+            conv.first_message_date.as_deref().unwrap_or("N/A"),
+            conv.last_message_date.as_deref().unwrap_or("N/A"),
+        ])?;
+    }
+    csv_writer.flush()?;
+    
+    // Write TXT file
+    let txt_path = output_dir.join(format!("dm_conversations_{}_{}.txt", _screen_name, _timestamp));
+    let txt_file = File::create(&txt_path)?;
+    let mut txt_writer = BufWriter::new(txt_file);
+    
+    for (i, conv) in conversations.iter().enumerate() {
+        writeln!(txt_writer, "--- Conversation {} ---", i + 1)?;
+        writeln!(txt_writer, "ID: {}", conv.id)?;
+        writeln!(txt_writer, "Messages: {}", conv.message_count)?;
+        if let Some(first) = &conv.first_message_date {
+            writeln!(txt_writer, "First Message: {}", first)?;
+        }
+        if let Some(last) = &conv.last_message_date {
+            writeln!(txt_writer, "Last Message: {}", last)?;
+        }
+        writeln!(txt_writer)?;
+    }
+    txt_writer.flush()?;
+    
+    // Write summary
+    let duration = start_time.elapsed();
+    let total_messages: usize = conversations.iter().map(|c| c.message_count).sum();
+    
+    let summary = format!(
+        "DM Processing Summary\n\
+         ====================\n\
+         Total Conversations: {}\n\
+         Total Messages: {}\n\
+         Processing Time: {:.2} seconds\n\
+         ====================\n\
+         Status: Complete",
+        conversations.len(),
+        total_messages,
+        duration.as_secs_f64()
+    );
+    
+    let summary_path = output_dir.join(format!("dm_results_{}_{}.txt", _screen_name, _timestamp));
+    async_fs::write(&summary_path, summary).await.context("Failed to write DM summary")?;
+    
+    println!("✅ DM processing complete! Generated {} files", 3);
+    Ok(())
+}
+
+/// Calculate response times between consecutive messages in a conversation
+pub fn calculate_response_times(messages: &[DmMessage]) -> Vec<std::time::Duration> {
+    let mut response_times = Vec::new();
+    let mut timestamps = Vec::new();
+    
+    // Collect valid timestamps
+    for message in messages {
+        if let Some(message_create) = &message.message_create {
+            if let Some(created_at) = &message_create.created_at {
+                if let Ok(timestamp) = DateTime::parse_from_rfc3339(created_at) {
+                    timestamps.push(timestamp.with_timezone(&Utc));
+                }
+            }
+        }
+    }
+    
+    // Calculate response times between consecutive messages
+    for i in 1..timestamps.len() {
+        let duration = timestamps[i].signed_duration_since(timestamps[i-1]);
+        if let Ok(std_duration) = duration.to_std() {
+            response_times.push(std_duration);
+        }
+    }
+    
+    response_times
+}
+
+/// Calculate average response time for a conversation
+pub fn calculate_average_response_time(messages: &[DmMessage]) -> std::time::Duration {
+    let response_times = calculate_response_times(messages);
+    
+    if response_times.is_empty() {
+        return std::time::Duration::from_secs(0);
+    }
+    
+    let total_nanos: u128 = response_times.iter().map(|d| d.as_nanos()).sum();
+    let avg_nanos = total_nanos / response_times.len() as u128;
+    
+    std::time::Duration::from_nanos(avg_nanos as u64)
+}
+
+/// Analyze hourly activity patterns from interaction events
+pub fn analyze_hourly_activity(events: &[InteractionEvent]) -> Vec<usize> {
+    let mut hourly_counts = vec![0; 24];
+    
+    for event in events {
+        let hour = event.timestamp.hour() as usize;
+        hourly_counts[hour] += 1;
+    }
+    
+    hourly_counts
+}
+
+/// Find the most active day of the week from interaction events
+pub fn find_most_active_day(events: &[InteractionEvent]) -> Option<chrono::Weekday> {
+    use chrono::Weekday;
+    use std::collections::HashMap;
+    
+    let mut day_counts = HashMap::new();
+    
+    for event in events {
+        let weekday = event.timestamp.weekday();
+        *day_counts.entry(weekday).or_insert(0) += 1;
+    }
+    
+    day_counts.into_iter()
+        .max_by_key(|(_, count)| *count)
+        .map(|(day, _)| day)
+}
+    fn create_sample_dm_data() -> Vec<DmWrapper> {
+        vec![
+            DmWrapper {
+                dm_conversation: DmConversation {
+                    conversation_id: "3382-1132151165410455552".to_string(),
+                    messages: vec![
+                        DmMessage {
+                            message_create: Some(DmMessageCreate {
+                                id: Some("msg1".to_string()),
+                                text: Some("Hello there!".to_string()),
+                                created_at: Some("2023-01-15T10:30:00.000Z".to_string()),
+                            }),
+                        },
+                        DmMessage {
+                            message_create: Some(DmMessageCreate {
+                                id: Some("msg2".to_string()),
+                                text: Some("How are you?".to_string()),
+                                created_at: Some("2023-01-15T11:00:00.000Z".to_string()),
+                            }),
+                        },
+                    ],
+                },
+            },
+            DmWrapper {
+                dm_conversation: DmConversation {
+                    conversation_id: "9876543210-1132151165410455552".to_string(),
+                    messages: vec![
+                        DmMessage {
+                            message_create: Some(DmMessageCreate {
+                                id: Some("msg3".to_string()),
+                                text: Some("Another conversation".to_string()),
+                                created_at: Some("2023-02-01T14:20:00.000Z".to_string()),
+                            }),
+                        },
+                    ],
+                },
+            },
+        ]
+    }
+
+    // Helper function to create sample tweet data for testing
+    fn create_sample_tweet_data() -> Vec<Tweet> {
+        vec![
+            Tweet {
+                id_str: "tweet1".to_string(),
+                favorite_count: "5".to_string(),
+                full_text: "Hello @testuser!".to_string(),
+                in_reply_to_status_id: None,
+                retweeted: false,
+                in_reply_to_screen_name: Some("testuser".to_string()),
+                retweet_count: "2".to_string(),
+                created_at: "Sun Jan 15 10:30:00 +0000 2023".to_string(),
+            },
+            Tweet {
+                id_str: "tweet2".to_string(),
+                favorite_count: "10".to_string(),
+                full_text: "Just a regular tweet".to_string(),
+                in_reply_to_status_id: None,
+                retweeted: false,
+                in_reply_to_screen_name: None,
+                retweet_count: "3".to_string(),
+                created_at: "Mon Jan 16 15:45:00 +0000 2023".to_string(),
+            },
+        ]
+    }
+
+    // Phase 1 Tests - User Extraction & Basic Profiling
+
+    #[test]
+    fn test_user_id_anonymization() {
+        let user_id = "1132151165410455552";
+        let hash1 = hash_user_id(user_id);
+        let hash2 = hash_user_id(user_id);
+        
+        assert_eq!(hash1, hash2); // Consistent hashing
+        assert_ne!(hash1, user_id); // Actually anonymized
+        assert_eq!(hash1.len(), 64); // Blake3 hash length
+    }
+
+    #[test]
+    fn test_user_id_anonymization_different_inputs() {
+        let user_id1 = "1132151165410455552";
+        let user_id2 = "9876543210";
+        
+        let hash1 = hash_user_id(user_id1);
+        let hash2 = hash_user_id(user_id2);
+        
+        assert_ne!(hash1, hash2); // Different inputs produce different hashes
+        assert_eq!(hash1.len(), 64);
+        assert_eq!(hash2.len(), 64);
+    }
+
+    #[test]
+    fn test_user_id_anonymization_edge_cases() {
+        // Test empty string
+        let empty_hash = hash_user_id("");
+        assert_eq!(empty_hash.len(), 64);
+        
+        // Test very long string
+        let long_string = "a".repeat(1000);
+        let long_hash = hash_user_id(&long_string);
+        assert_eq!(long_hash.len(), 64);
+        
+        // Test special characters
+        let special_hash = hash_user_id("user@#$%^&*()");
+        assert_eq!(special_hash.len(), 64);
+    }
+
+    #[test]
+    fn test_extract_unique_users_from_dms() {
+        let sample_dm_data = create_sample_dm_data();
+        let analyzer = RelationshipAnalyzer::new();
+        
+        let users = analyzer.extract_users_from_dms(&sample_dm_data);
+        
+        assert_eq!(users.len(), 3); // "3382", "1132151165410455552", "9876543210"
+        assert!(users.contains(&hash_user_id("3382")));
+        assert!(users.contains(&hash_user_id("1132151165410455552")));
+        assert!(users.contains(&hash_user_id("9876543210")));
+    }
+
+    #[test]
+    fn test_extract_users_from_tweets() {
+        let sample_tweet_data = create_sample_tweet_data();
+        let analyzer = RelationshipAnalyzer::new();
+        
+        let users = analyzer.extract_users_from_tweets(&sample_tweet_data);
+        
+        assert_eq!(users.len(), 1); // Only "testuser" from reply
+        assert!(users.contains(&hash_user_id("testuser")));
+    }
+
+    #[test]
+    fn test_handle_empty_data_gracefully() {
+        let analyzer = RelationshipAnalyzer::new();
+        
+        let empty_dm_data: Vec<DmWrapper> = vec![];
+        let empty_tweet_data: Vec<Tweet> = vec![];
+        
+        let dm_users = analyzer.extract_users_from_dms(&empty_dm_data);
+        let tweet_users = analyzer.extract_users_from_tweets(&empty_tweet_data);
+        
+        assert!(dm_users.is_empty());
+        assert!(tweet_users.is_empty());
+    }
+
+    #[test]
+    fn test_extract_users_from_malformed_conversation_ids() {
+        let malformed_dm_data = vec![
+            DmWrapper {
+                dm_conversation: DmConversation {
+                    conversation_id: "invalid_format".to_string(), // No dash
+                    messages: vec![],
+                },
+            },
+            DmWrapper {
+                dm_conversation: DmConversation {
+                    conversation_id: "user1-user2-user3".to_string(), // Multiple dashes
+                    messages: vec![],
+                },
+            },
+        ];
+        
+        let analyzer = RelationshipAnalyzer::new();
+        let users = analyzer.extract_users_from_dms(&malformed_dm_data);
+        
+        // Should handle malformed IDs gracefully
+        // First case: no dash, no users extracted
+        // Second case: takes first dash, extracts "user1" and "user2-user3"
+        assert_eq!(users.len(), 2);
+        assert!(users.contains(&hash_user_id("user1")));
+        assert!(users.contains(&hash_user_id("user2-user3")));
+    }
+
+    #[test]
+    fn test_create_basic_user_profile() {
+        let sample_data = create_sample_dm_data();
+        let analyzer = RelationshipAnalyzer::new();
+        let user_hash = hash_user_id("3382");
+        
+        let profile = analyzer.create_user_profile(&user_hash, &sample_data);
+        
+        assert_eq!(profile.user_hash, user_hash);
+        assert!(profile.dm_stats.total_messages > 0);
+        assert!(profile.first_interaction.is_some());
+        assert!(profile.last_interaction.is_some());
+        assert!(profile.first_interaction <= profile.last_interaction);
+    }
+
+    #[test]
+    fn test_dm_statistics_calculation() {
+        let sample_data = create_sample_dm_data();
+        let analyzer = RelationshipAnalyzer::new();
+        let user_hash = hash_user_id("3382");
+        
+        let stats = analyzer.calculate_dm_statistics(&user_hash, &sample_data);
+        
+        assert_eq!(stats.total_messages, 2); // Two messages in first conversation
+        assert_eq!(stats.messages_sent, 2); // Currently counting all as sent
+        assert_eq!(stats.messages_received, 0); // Not implemented yet
+    }
+
+    #[test]
+    fn test_profile_with_no_interactions() {
+        let empty_data: Vec<DmWrapper> = vec![];
+        let analyzer = RelationshipAnalyzer::new();
+        let user_hash = hash_user_id("nonexistent_user");
+        
+        let profile = analyzer.create_user_profile(&user_hash, &empty_data);
+        
+        assert_eq!(profile.user_hash, user_hash);
+        assert_eq!(profile.dm_stats.total_messages, 0);
+        assert!(profile.first_interaction.is_none());
+        assert!(profile.last_interaction.is_none());
+    }
+
+    #[test]
+    fn test_interaction_timespan_calculation() {
+        let sample_data = create_sample_dm_data();
+        let analyzer = RelationshipAnalyzer::new();
+        let user_hash = hash_user_id("1132151165410455552");
+        
+        let profile = analyzer.create_user_profile(&user_hash, &sample_data);
+        
+        assert!(profile.first_interaction.is_some());
+        assert!(profile.last_interaction.is_some());
+        
+        // Should span from first message (2023-01-15T10:30:00.000Z) to last (2023-02-01T14:20:00.000Z)
+        let first = profile.first_interaction.unwrap();
+        let last = profile.last_interaction.unwrap();
+        assert!(first < last);
+    }
+
+    // Phase 2 Tests - Timeline Construction
+
+    #[test]
+    fn test_build_interaction_timeline() {
+        let dm_data = create_sample_dm_data();
+        let tweet_data = create_sample_tweet_data();
+        let analyzer = RelationshipAnalyzer::new();
+        
+        let timeline = analyzer.build_timeline(&dm_data, &tweet_data);
+        
+        assert!(!timeline.is_empty());
+        assert!(is_chronologically_sorted(&timeline));
+        assert!(timeline.iter().any(|e| matches!(e.event_type, InteractionType::DmSent)));
+        assert!(timeline.iter().any(|e| matches!(e.event_type, InteractionType::TweetReply)));
+    }
+
+    #[test]
+    fn test_timeline_event_creation() {
+        let dm_message = DmMessage {
+            message_create: Some(DmMessageCreate {
+                id: Some("test_msg".to_string()),
+                text: Some("Test message".to_string()),
+                created_at: Some("2023-01-15T10:30:00.000Z".to_string()),
+            }),
+        };
+        
+        let event = InteractionEvent::from_dm_message(&dm_message, "user1-user2");
+        
+        assert!(event.is_some());
+        let event = event.unwrap();
+        assert_eq!(event.event_type, InteractionType::DmSent);
+        assert_eq!(event.participants.len(), 2);
+        assert!(event.metadata.contains_key("message_id"));
+        assert_eq!(event.metadata.get("message_id").unwrap(), "test_msg");
+    }
+
+    #[test]
+    fn test_timeline_sorting() {
+        let dm_data = create_sample_dm_data();
+        let tweet_data = create_sample_tweet_data();
+        let analyzer = RelationshipAnalyzer::new();
+        
+        let timeline = analyzer.build_timeline(&dm_data, &tweet_data);
+        
+        // Timeline should be sorted newest first
+        for i in 1..timeline.len() {
+            assert!(timeline[i-1].timestamp >= timeline[i].timestamp);
+        }
+    }
+
+    // Helper function to check if timeline is chronologically sorted (newest first)
+    fn is_chronologically_sorted(timeline: &[InteractionEvent]) -> bool {
+        for i in 1..timeline.len() {
+            if timeline[i-1].timestamp < timeline[i].timestamp {
+                return false;
+            }
+        }
+        true
+    }
+
+    // Phase 2 Tests - Response Time Analysis
+
+    #[test]
+    fn test_response_time_calculation() {
+        let conversation = create_sample_conversation_with_timestamps();
+        let response_times = calculate_response_times(&conversation);
+        
+        assert_eq!(response_times.len(), 2); // 3 messages = 2 response times
+        assert!(response_times.iter().all(|&rt| rt > std::time::Duration::from_secs(0)));
+    }
+
+    #[test]
+    fn test_average_response_time() {
+        let conversation = create_sample_conversation_with_timestamps();
+        let avg_response_time = calculate_average_response_time(&conversation);
+        
+        assert!(avg_response_time > std::time::Duration::from_secs(0));
+        assert!(avg_response_time < std::time::Duration::from_hours(24)); // Reasonable upper bound
+    }
+
+    #[test]
+    fn test_response_time_with_single_message() {
+        let single_message_conversation = vec![
+            DmMessage {
+                message_create: Some(DmMessageCreate {
+                    id: Some("msg1".to_string()),
+                    text: Some("Single message".to_string()),
+                    created_at: Some("2023-01-15T10:30:00.000Z".to_string()),
+                }),
+            },
+        ];
+        
+        let response_times = calculate_response_times(&single_message_conversation);
+        assert!(response_times.is_empty()); // No response times for single message
+    }
+
+    // Helper function to create conversation with specific timestamps for response time testing
+    fn create_sample_conversation_with_timestamps() -> Vec<DmMessage> {
+        vec![
+            DmMessage {
+                message_create: Some(DmMessageCreate {
+                    id: Some("msg1".to_string()),
+                    text: Some("First message".to_string()),
+                    created_at: Some("2023-01-15T10:00:00.000Z".to_string()),
+                }),
+            },
+            DmMessage {
+                message_create: Some(DmMessageCreate {
+                    id: Some("msg2".to_string()),
+                    text: Some("Response after 30 minutes".to_string()),
+                    created_at: Some("2023-01-15T10:30:00.000Z".to_string()),
+                }),
+            },
+            DmMessage {
+                message_create: Some(DmMessageCreate {
+                    id: Some("msg3".to_string()),
+                    text: Some("Another response after 1 hour".to_string()),
+                    created_at: Some("2023-01-15T11:30:00.000Z".to_string()),
+                }),
+            },
+        ]
+    }
+
+    // Phase 3 Tests - Communication Pattern Analysis
+
+    #[test]
+    fn test_activity_by_hour_analysis() {
+        let events = create_events_across_different_hours();
+        let hourly_activity = analyze_hourly_activity(&events);
+        
+        assert_eq!(hourly_activity.len(), 24);
+        assert!(hourly_activity.iter().any(|&count| count > 0));
+        
+        // Check that the specific hours we created events for have activity
+        assert!(hourly_activity[10] > 0); // 10 AM
+        assert!(hourly_activity[14] > 0); // 2 PM
+        assert!(hourly_activity[20] > 0); // 8 PM
+    }
+
+    #[test]
+    fn test_most_active_day_detection() {
+        let events = create_events_across_week();
+        let most_active_day = find_most_active_day(&events);
+        
+        // Should return a valid weekday
+        assert!(matches!(most_active_day, Some(_)));
+    }
+
+    #[test]
+    fn test_communication_frequency_analysis() {
+        let dm_data = create_sample_dm_data();
+        let analyzer = RelationshipAnalyzer::new();
+        let user_hash = hash_user_id("3382");
+        
+        let frequency = analyzer.calculate_communication_frequency(&user_hash, &dm_data);
+        
+        assert!(frequency.messages_per_day >= 0.0);
+        assert!(frequency.active_days > 0);
+    }
+
+    // Helper functions for pattern analysis tests
+    fn create_events_across_different_hours() -> Vec<InteractionEvent> {
+        vec![
+            InteractionEvent {
+                timestamp: DateTime::parse_from_rfc3339("2023-01-15T10:30:00.000Z").unwrap().with_timezone(&Utc),
+                event_type: InteractionType::DmSent,
+                participants: vec![hash_user_id("user1"), hash_user_id("user2")],
+                metadata: HashMap::new(),
+            },
+            InteractionEvent {
+                timestamp: DateTime::parse_from_rfc3339("2023-01-15T14:15:00.000Z").unwrap().with_timezone(&Utc),
+                event_type: InteractionType::DmSent,
+                participants: vec![hash_user_id("user1"), hash_user_id("user2")],
+                metadata: HashMap::new(),
+            },
+            InteractionEvent {
+                timestamp: DateTime::parse_from_rfc3339("2023-01-15T20:45:00.000Z").unwrap().with_timezone(&Utc),
+                event_type: InteractionType::TweetReply,
+                participants: vec![hash_user_id("user1"), hash_user_id("user3")],
+                metadata: HashMap::new(),
+            },
+        ]
+    }
+
+    fn create_events_across_week() -> Vec<InteractionEvent> {
+        vec![
+            // Monday events
+            InteractionEvent {
+                timestamp: DateTime::parse_from_rfc3339("2023-01-16T10:00:00.000Z").unwrap().with_timezone(&Utc), // Monday
+                event_type: InteractionType::DmSent,
+                participants: vec![hash_user_id("user1")],
+                metadata: HashMap::new(),
+            },
+            InteractionEvent {
+                timestamp: DateTime::parse_from_rfc3339("2023-01-16T15:00:00.000Z").unwrap().with_timezone(&Utc), // Monday
+                event_type: InteractionType::DmSent,
+                participants: vec![hash_user_id("user1")],
+                metadata: HashMap::new(),
+            },
+            // Tuesday events
+            InteractionEvent {
+                timestamp: DateTime::parse_from_rfc3339("2023-01-17T11:00:00.000Z").unwrap().with_timezone(&Utc), // Tuesday
+                event_type: InteractionType::TweetReply,
+                participants: vec![hash_user_id("user2")],
+                metadata: HashMap::new(),
+            },
+            // Wednesday events (most active)
+            InteractionEvent {
+                timestamp: DateTime::parse_from_rfc3339("2023-01-18T09:00:00.000Z").unwrap().with_timezone(&Utc), // Wednesday
+                event_type: InteractionType::DmSent,
+                participants: vec![hash_user_id("user1")],
+                metadata: HashMap::new(),
+            },
+            InteractionEvent {
+                timestamp: DateTime::parse_from_rfc3339("2023-01-18T12:00:00.000Z").unwrap().with_timezone(&Utc), // Wednesday
+                event_type: InteractionType::DmSent,
+                participants: vec![hash_user_id("user1")],
+                metadata: HashMap::new(),
+            },
+            InteractionEvent {
+                timestamp: DateTime::parse_from_rfc3339("2023-01-18T18:00:00.000Z").unwrap().with_timezone(&Utc), // Wednesday
+                event_type: InteractionType::TweetReply,
+                participants: vec![hash_user_id("user2")],
+                metadata: HashMap::new(),
+            },
+        ]
+    }
+}
+

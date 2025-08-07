@@ -18,6 +18,14 @@ Main Processing Pipeline:
 │ get_input_file()     │ ◄── │ get_screen_name()   │
 └──────────────────────┘     └─────────────────────┘
           │                           │
+          ▼
+┌──────────────────────┐     ┌─────────────────────┐
+│  Timeline Analysis   │     │  User Profiling     │
+│  - Active hours      │     │  - DM Stats        │
+│  - Weekly patterns   │     │  - Tweet Stats     │
+│  - Burst detection   │     │  - Engagement      │
+└──────────────────────┘     └─────────────────────┘
+          │                           │
           ▼                           ▼
 ┌──────────────────────┐     ┌─────────────────────┐
 │  process_tweets()    │     │   get_dm_file()     │
@@ -85,8 +93,34 @@ DM Processing Pipeline (NEW):
 5. Sorting: By message count (descending)
 6. Output: DM CSV + TXT + Summary files
 
+## Timeline Analysis Architecture
+
+### Components
+1. **TimelineAnalyzer**
+   - Processes interaction events
+   - Detects temporal patterns
+   - Calculates response statistics
+   - Identifies active periods
+
+2. **Pattern Detection**
+   - Active hours identification
+   - Weekly pattern analysis
+   - Bursty activity detection
+   - Conversation intensity measurement
+
+3. **Response Time Analysis**
+   - Calculate response time statistics
+   - Track response time trends
+   - Identify optimal response windows
+
+### Data Flow
+1. Raw events → TimelineAnalyzer → Pattern detection → Statistics generation
+2. Results integrated into user profiles and conversation analysis
+3. Visualizations generated for temporal patterns
+
 File Format Support:
-- Input: JavaScript-prefixed JSON files from Twitter exports
+- Input: Twitter JSON archive format
+- Output: CSV, TXT, summary files, and timeline visualizations from Twitter exports
 - Output: Standard CSV with headers, human-readable TXT, processing summaries
 - Error Handling: Comprehensive with anyhow context propagation
 - Performance: Async I/O with buffered writing and memory optimization
