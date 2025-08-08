@@ -12,9 +12,31 @@ Cargo.lock
 .DS_Store
 Thumbs.db
 
-# Private data folder - NEVER commit personal Twitter data!
+# Private data folders - NEVER commit personal Twitter data!
 /private_data/
 private_data/
+/REALDATA/
+REALDATA/
+**/REALDATA/
+**/private_data/
+
+# Twitter archive files - CRITICAL: Never commit these!
+*.js.personal
+*_private_*
+tweets.js
+direct-messages.js
+direct-message-headers.js
+*twitter-archive*
+*twitter_archive*
+
+# Schema reports that might reference private data paths
+*_schema_report.md
+*private_data*schema*
+*REALDATA*schema*
+
+# Backup folders that might contain private data
+zzBackup/
+**/zzBackup/
 
 # Test output directories
 output_*/
