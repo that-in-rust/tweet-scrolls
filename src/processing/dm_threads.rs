@@ -183,46 +183,66 @@ fn calculate_thread_metadata(messages: &[DmThreadMessage], timestamps: &[DateTim
 pub fn format_dm_thread_as_text(thread: &DmThread) -> String {
     let mut output = String::new();
     
-    output.push_str(&format!("💬 DM Thread: {}\n", thread.thread_id));
-    output.push_str(&format!("👥 Participants: {} people\n", thread.participant_count));
-    
-    if let Some(start) = thread.metadata.start_time {
-        output.push_str(&format!("🕐 Started: {}\n", start.format("%Y-%m-%d %H:%M:%S")));
-    }
+    // Simplified header with just essential info
+    output.push_str(&format!("💬 Conversation ({} messages", thread.messages.len()));
     
     if let Some(duration) = thread.metadata.duration_seconds {
-        let hours = duration / 3600;
-        let minutes = (duration % 3600) / 60;
-        output.push_str(&format!("⏱️ Duration: {}h {}m\n", hours, minutes));
+        let days = duration / 86400;
+        let hours = (duration % 86400) / 3600;
+        if days > 0 {
+            output.push_str(&format!(", {} days", days));
+        } else if hours > 0 {
+            output.push_str(&format!(", {} hours", hours));
+        }
+    }
+    output.push_str(")\n");
+    output.push_str(&format!("{}\n", "─".repeat(40)));
+    
+    let mut previous_timestamp: Option<chrono::DateTime<chrono::Utc>> = None;
+    
+    for (i, msg) in thread.messages.iter().enumerate() {
+        // Calculate relative timing
+        let timing_info = if let (Some(current_ts), Some(prev_ts)) = (msg.timestamp, previous_timestamp) {
+            let duration = current_ts.signed_duration_since(prev_ts);
+            
+            if duration.num_days() > 0 {
+                format!("({} days later)", duration.num_days())
+            } else if duration.num_hours() > 0 {
+                format!("({} hours later)", duration.num_hours())
+            } else if duration.num_minutes() > 5 {
+                format!("({} minutes later)", duration.num_minutes())
+            } else {
+                String::new() // Don't show timing for quick responses
+            }
+        } else {
+            String::new()
+        };
+        
+        // Simple sender identification (A/B instead of hashes)
+        let sender_label = if i == 0 || thread.messages.get(i-1).map(|prev| &prev.sender_hash) != Some(&msg.sender_hash) {
+            // Show sender only when it changes
+            let sender_id = if msg.sender_hash == thread.participants[0] { "A" } else { "B" };
+            if timing_info.is_empty() {
+                format!("{}:", sender_id)
+            } else {
+                format!("{} {}:", sender_id, timing_info)
+            }
+        } else {
+            // Same sender continuing
+            if timing_info.is_empty() {
+                "  ".to_string() // Just indent
+            } else {
+                format!("  {}", timing_info)
+            }
+        };
+        
+        // Clean message format focused on content
+        output.push_str(&format!("{} {}\n", sender_label, msg.text));
+        
+        previous_timestamp = msg.timestamp;
     }
     
-    if let Some(avg_response) = thread.metadata.avg_response_time {
-        output.push_str(&format!("⚡ Avg response time: {:.1} minutes\n", avg_response / 60.0));
-    }
-    
-    output.push_str(&format!("{}\n", "─".repeat(50)));
-    
-    for msg in &thread.messages {
-        output.push_str(&format!("\n[{}] ", msg.position));
-        
-        if let Some(ctx) = &msg.reply_context {
-            output.push_str(&format!("↳ {} ", ctx));
-        }
-        
-        output.push_str(&format!("From: {} ", &msg.sender_hash[..8]));
-        
-        if let Some(recipient) = &msg.recipient_hash {
-            output.push_str(&format!("To: {} ", &recipient[..8]));
-        }
-        
-        if let Some(ts) = msg.timestamp {
-            output.push_str(&format!("\n📅 {}", ts.format("%Y-%m-%d %H:%M:%S")));
-        }
-        
-        output.push_str(&format!("\n{}\n", msg.text));
-    }
-    
-    output.push_str(&format!("{}\n\n", "─".repeat(50)));
+    output.push_str(&format!("{}\n\n", "─".repeat(40)));
     
     output
 }
@@ -332,11 +352,11 @@ mod tests {
         let thread = convert_single_dm_to_thread(conversation).unwrap();
         let formatted = format_dm_thread_as_text(&thread);
         
-        assert!(formatted.contains("DM Thread: dm_123-456"));
-        assert!(formatted.contains("Participants: 2 people"));
+        assert!(formatted.contains("💬 Conversation"));
+        assert!(formatted.contains("messages"));
         assert!(formatted.contains("Hello!"));
         assert!(formatted.contains("Hi there!"));
         assert!(formatted.contains("How are you?"));
-        // Note: Avg response time may not appear if timestamp parsing fails
+        assert!(formatted.contains("A:") || formatted.contains("B:")); // Should have sender labels
     }
 }
