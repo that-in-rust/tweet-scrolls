@@ -20,11 +20,11 @@
    - Privacy protection with Blake3 anonymization
    - Real data tested: 3,599 conversations processed
 
-3. **Relationship Intelligence**: Complete with LLM integration
-   - User profiling with interaction analysis
-   - Timeline analysis with behavioral patterns
-   - Communication pattern detection
-   - LLM-ready file generation for AI analysis
+3. **Timeline Analysis**: Complete with activity pattern detection
+   - Activity timeline with temporal patterns
+   - Timeline analysis with behavioral insights  
+   - Communication timing and frequency analysis
+   - CSV and TXT output generation for review
 
 4. **File Splitter Utility**: Complete with comprehensive testing
    - Split large files into manageable chunks (default 1MB)
@@ -64,7 +64,7 @@
 ✅ **All Features Implemented and Tested**:
 - Enhanced thread reconstruction with ALL replies as threads
 - DM thread conversion with timing analysis
-- Relationship intelligence with LLM-ready outputs
+- Timeline analysis with activity pattern insights
 - File splitter utility for archive management
 - Simple CLI interface with automatic detection
 - Comprehensive privacy protection
@@ -91,7 +91,7 @@
 3. **Real Data Performance**: ✅
    - Complete Twitter archive processing: 55,598 tweets → 22,004 meaningful conversations
    - DM processing: 3,599 conversations → structured thread analysis
-   - Relationship mapping: 2,469 unique connections identified
+   - Timeline analysis: 2,469 unique interactions processed
    - Total interactions analyzed: 210,974
 
 ### 🔒 SECURITY STATUS - FULLY PROTECTED
@@ -142,7 +142,7 @@ A: how the dynamics and things work
 - ✅ **Smart Timing**: Only shows gaps >5 minutes to reduce noise
 - ✅ **62% Size Reduction**: 28MB → 11MB for same conversation data
 - ✅ **Natural Flow**: Conversations read like chat logs with meaningful context
-- ✅ **AI-Ready**: Clean format perfect for LLM analysis
+- ✅ **Analysis-Ready**: Clean format perfect for review and analysis
 
 ### 📝 DOCUMENTATION STATUS - COMPLETE
 

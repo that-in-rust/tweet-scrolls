@@ -1,7 +1,7 @@
 # Tweet-Scrolls 📜
 *Transform Twitter archives into organized conversation intelligence*
 
-**Tweet-Scrolls processes your Twitter archive files and generates structured conversation data with relationship analysis.** Like the Marauder's Map, it reveals hidden patterns in your digital interactions.
+**Tweet-Scrolls processes your Twitter archive files and generates structured conversation threads and timeline analysis.** Like the Marauder's Map, it reveals organized patterns in your tweet and DM conversations.
 
 ## Input → Output
 
@@ -31,9 +31,9 @@ flowchart TD
     output --> details
     
     subgraph details ["📋 File Details"]
-        B3[threads_*.csv<br/>dm_threads_*.csv<br/>timeline_*.csv]
-        B4[threads_*.txt<br/>profiles_*/<br/>analysis_*.txt]
-        B5[llm_prompts.txt<br/>relationship_maps<br/>behavioral_patterns]
+        B3[threads_*.csv<br/>dm_threads_*.csv<br/>timeline_analysis_*.csv]
+        B4[threads_*.txt<br/>dm_threads_*.txt<br/>timeline_analysis_*.txt]
+        B5[results_*.txt<br/>dm_results_*.txt]
     end
     
     style input fill:#e8f4fd
@@ -45,8 +45,8 @@ flowchart TD
 ### Key Capabilities
 - **Thread Reconstruction**: Connects all replies into complete conversations
 - **DM Organization**: Converts message threads into readable conversation flows
-- **Relationship Mapping**: Identifies your most frequent interaction partners
 - **Timeline Analysis**: Shows when you're most active and interaction patterns
+- **Multi-Format Output**: Generates both CSV data files and human-readable text
 - **Privacy Protection**: All processing happens locally, user IDs are anonymized
 
 ## Installation & Usage
@@ -88,7 +88,7 @@ flowchart TD
     A3["💬 DM Organization<br/>⏰ Add timestamps<br/>👥 A/B participants"]
     A4["🔐 Anonymization<br/>🔒 Blake3 hashing<br/>🛡️ Protect identity"]
     A5["📊 Data Generation<br/>📈 CSV files<br/>📝 Human-readable"]
-    A6["🤖 LLM Preparation<br/>🎯 Analysis prompts<br/>🔮 Intelligence ready"]
+    A6["📊 Final Output<br/>📈 Timeline analysis<br/>✅ Processing complete"]
     
     A1 --> A2
     A2 --> A3
@@ -104,11 +104,11 @@ flowchart TD
     style A6 fill:#f3e5f5
 ```
 
-**The Magic**: Like a digital archaeologist, Tweet-Scrolls discovers your Twitter archive files, intelligently reconstructs conversation threads, and transforms them into LLM-ready insights - all while keeping your data safe and local.
+**The Magic**: Like a digital archaeologist, Tweet-Scrolls discovers your Twitter archive files, intelligently reconstructs conversation threads, and transforms them into organized, readable formats - all while keeping your data safe and local.
 
 ### Thread Compilation Example
 
-Like transforming scattered pages into a coherent storybook, Tweet-Scrolls compiles individual JSON messages into cohesive conversation threads that are easily digestible by Large Language Models.
+Like transforming scattered pages into a coherent storybook, Tweet-Scrolls compiles individual JSON messages into cohesive conversation threads that are easy to read and analyze.
 
 ```mermaid
 flowchart TD
@@ -145,7 +145,7 @@ flowchart TD
     style Metadata fill:#f0f9ff
 ```
 
-**The Transformation**: Individual JSON objects become natural conversation flow with timing context and participant anonymization - perfect for LLM analysis and pattern recognition.
+**The Transformation**: Individual JSON objects become natural conversation flow with timing context and participant anonymization - perfect for review and analysis.
 
 ## File Details
 
@@ -157,7 +157,7 @@ flowchart TD
 | `dm_threads_*.txt` | Human-readable DM threads | Review private messages |
 | `timeline_analysis_*.csv` | Activity patterns and statistics | Behavioral analysis |
 | `timeline_analysis_*.txt` | Activity insights and summaries | Understanding patterns |
-| `relationship_profiles_*/` | Individual relationship analysis | AI-ready insights |
+| `results_*.txt` | Processing summary and statistics | Overview |
 
 ## Privacy & Security
 
@@ -270,9 +270,9 @@ graph TD
     style Models fill:#fce4ec
 ```
 
-## LLM Assimilation Journey
+## Output Analysis
 
-*"Like the Sorting Hat understanding a student's mind..."*
+*"Like organizing a messy bookshelf into a beautiful library..."*
 
 ```mermaid
 flowchart TD
@@ -283,35 +283,25 @@ flowchart TD
         A4["*.txt files<br/>Human-readable formats"]
     end
     
-    Files --> Questions
+    Files --> Analysis
     
-    subgraph Questions ["🧠 Ready-Made Analysis Questions"]
-        B1["'Who do I interact with most?'"]
-        B2["'When am I most active?'"]
-        B3["'How has my style evolved?'"]
-        B4["'What are my patterns?'"]
+    subgraph Analysis ["📈 What You Can Discover"]
+        B1["📊 Conversation patterns<br/>• Thread lengths<br/>• Response frequencies"]
+        B2["⏰ Activity insights<br/>• Peak hours<br/>• Most active days"]
     end
     
-    Questions --> Intelligence
-    
-    subgraph Intelligence ["🎯 LLM-Ready Intelligence"]
-        C1["📈 Relationship Analysis<br/>• Interaction frequency<br/>• Communication patterns"]
-        C2["⏰ Timeline Patterns<br/>• Peak activity hours<br/>• Response timing"]
-    end
-    
-    Intelligence --> Privacy
+    Analysis --> Privacy
     
     subgraph Privacy ["🔐 Privacy Protected"]
-        D1["🔒 Blake3 anonymization<br/>🛡️ Local processing<br/>🚫 No network calls"]
+        C1["🔒 Blake3 anonymization<br/>🛡️ Local processing<br/>🚫 No network calls"]
     end
     
     style Files fill:#e3f2fd
-    style Questions fill:#fff3e0
-    style Intelligence fill:#e8f5e8
+    style Analysis fill:#fff3e0
     style Privacy fill:#fdf2f8
 ```
 
-**The Result**: Your digital conversations become structured intelligence that LLMs can analyze for relationship patterns, behavioral insights, and communication evolution - all with privacy-first anonymization.
+**The Result**: Your digital conversations become organized, structured data that preserves conversation flow and timing while protecting your privacy through local processing and anonymization.
 
 ---
 

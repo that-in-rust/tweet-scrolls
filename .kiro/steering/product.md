@@ -1,20 +1,20 @@
 # Product Overview
 
-Tweet-Scrolls is a Rust CLI tool that processes Twitter JSON archive files to extract and organize tweet threads into readable formats with advanced conversation intelligence.
+Tweet-Scrolls is a Rust CLI tool that processes Twitter JSON archive files to extract and organize tweet threads into readable formats with timeline analysis.
 
 ## Core Purpose
 - Transforms chaotic Twitter JSON archives into organized conversation threads
 - Filters out retweets and noise, keeping only meaningful discourse
 - Provides both CSV data files and human-readable text outputs
 - Focuses on thread reconstruction and conversation flow analysis
-- Generates relationship intelligence with LLM-ready insights
+- Generates timeline analysis and activity pattern insights
 
 ## Key Features
 
 ### **Enhanced Thread Processing**
 - **Thread Weaving**: Reconstructs ALL reply chains into complete conversations (not just self-replies)
 - **DM Thread Conversion**: Transforms private message threads into readable conversation flows
-- **Relationship Intelligence**: Maps social connections with interaction analysis
+- **Timeline Analysis**: Maps activity patterns and interaction timing
 - **File Splitter Utility**: Splits large archives into manageable 1MB chunks
 
 ### **Advanced DM Thread Format (v2.0)**
@@ -33,13 +33,13 @@ Tweet-Scrolls is a Rust CLI tool that processes Twitter JSON archive files to ex
 ### **Conversation Metrics**
 - Response time statistics (average, median, percentiles)
 - Interaction density analysis
-- Participant engagement levels
-- Relationship strength mapping
+- Activity pattern detection
+- Timeline insights and summaries
 
 ### **Multi-Format Output**
 - **CSV**: Structured data for analysis and processing
 - **TXT**: Human-readable reports optimized for conversation flow
-- **LLM-Ready**: Formatted for AI analysis and relationship insights
+- **Analysis-Ready**: Formatted for review and pattern analysis
 - **Chunked Files**: Large outputs automatically split into 1MB parts
 
 ### **Performance & Privacy**

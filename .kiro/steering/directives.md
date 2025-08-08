@@ -83,19 +83,17 @@ output_[user]_[timestamp]/
 ├── dm_conversations_[user]_[timestamp].csv  # DM conversation metadata
 ├── dm_threads_[user]_[timestamp].csv       # DM conversation threads
 ├── dm_threads_[user]_[timestamp].txt       # Human-readable DM threads
-└── relationship_profiles_[user]_[timestamp]/
-    ├── user_[hash]_profile.txt             # Individual relationship profiles
-    ├── interaction_timeline.txt            # Chronological interaction log
-    ├── communication_patterns.txt          # Behavioral pattern analysis
-    ├── relationship_network.txt            # Network topology analysis
-    └── llm_analysis_prompts.txt            # LLM-ready analysis questions
+├── timeline_analysis_[user]_[timestamp].csv  # Activity pattern data
+├── timeline_analysis_[user]_[timestamp].txt  # Activity pattern summary
+├── results_[user]_[timestamp].txt           # Processing summary
+└── dm_results_[user]_[timestamp].txt        # DM processing summary
 ```
 
 ### 🎯 Current Status - COMPLETE
 ✅ **All Core Features Implemented**:
 - Enhanced thread reconstruction (ALL replies treated as threads)
 - DM thread conversion with timing analysis
-- Relationship intelligence with LLM-ready outputs
+- Timeline analysis with activity pattern insights
 - File splitter utility for large archive management
 - Simple CLI interface with automatic file detection
 
