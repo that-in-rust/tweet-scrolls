@@ -5,27 +5,33 @@
 
 ## Input → Output
 
-### What You Provide
-```
-your-twitter-archive/
-├── tweets.js                    # Your tweet history
-├── direct-messages.js           # Private conversations  
-└── direct-message-headers.js    # Conversation metadata
-```
-
-### What You Get
-```
-output_username_timestamp/
-├── threads_*.csv               # Tweet conversations (structured data)
-├── threads_*.txt               # Tweet conversations (readable format)
-├── dm_threads_*.csv           # DM conversations (structured data)
-├── dm_threads_*.txt           # DM conversations (readable format)
-├── timeline_analysis_*.csv    # Activity patterns (structured data)
-├── timeline_analysis_*.txt    # Activity patterns (readable format)
-└── relationship_profiles_*/   # Individual relationship analysis
-    ├── user_*_profile.txt     # Per-person interaction history
-    ├── interaction_timeline.txt # Chronological activity log
-    └── llm_analysis_prompts.txt # AI-ready analysis questions
+```mermaid
+graph TB
+    subgraph Input ["📥 What You Provide"]
+        A["📂 your-twitter-archive/"]
+        A --> B["📄 tweets.js<br/>Your tweet history"]
+        A --> C["💬 direct-messages.js<br/>Private conversations"]
+        A --> D["📋 direct-message-headers.js<br/>Conversation metadata"]
+    end
+    
+    subgraph Output ["📤 What You Get"]
+        E["📁 output_username_timestamp/"]
+        E --> F["📊 threads_*.csv<br/>Tweet conversations (structured)"]
+        E --> G["📝 threads_*.txt<br/>Tweet conversations (readable)"]
+        E --> H["💬 dm_threads_*.csv<br/>DM conversations (structured)"]
+        E --> I["💭 dm_threads_*.txt<br/>DM conversations (readable)"]
+        E --> J["📈 timeline_analysis_*.csv<br/>Activity patterns (structured)"]
+        E --> K["📋 timeline_analysis_*.txt<br/>Activity insights (readable)"]
+        E --> L["👥 relationship_profiles_*/<br/>Individual relationship analysis"]
+        L --> M["📄 user_*_profile.txt<br/>Per-person interaction history"]
+        L --> N["⏰ interaction_timeline.txt<br/>Chronological activity log"]
+        L --> O["🤖 llm_analysis_prompts.txt<br/>AI-ready analysis questions"]
+    end
+    
+    Input --> Output
+    
+    style Input fill:#e1f5fe
+    style Output fill:#f3e5f5
 ```
 
 ### Key Capabilities
@@ -37,89 +43,80 @@ output_username_timestamp/
 
 ## User Journey
 
-
 ### 🏗️ How It Works: From Raw Data to LLM-Ready Gold
 
+```mermaid
+flowchart LR
+    subgraph Step1 ["🔍 Step 1: Discovery"]
+        A1["📂 Auto-detect files<br/>• tweets.js<br/>• direct-messages.js<br/>• headers.js"]
+        A2["📁 Create output directory<br/>• Timestamped naming<br/>• Safe file structure"]
+        A3["🛡️ Initialize privacy<br/>• Local processing only<br/>• No network calls"]
+    end
+    
+    subgraph Step2 ["🧠 Step 2: Processing"]
+        B1["🧵 Thread Building<br/>• Connect all replies<br/>• Build conversations"]
+        B2["💬 DM Organization<br/>• Add timestamps<br/>• Smart timing<br/>• A/B participants"]
+        B3["🔐 Anonymization<br/>• Blake3 hash user IDs<br/>• Protect identity"]
+    end
+    
+    subgraph Step3 ["🎯 Step 3: Intelligence"]
+        C1["📊 CSV Data Files<br/>• Structured data<br/>• Analysis ready"]
+        C2["📝 Human-Readable<br/>• Natural flow<br/>• Conversation style"]
+        C3["🤖 LLM Prompts<br/>• Relationship maps<br/>• Behavioral patterns<br/>• AI analysis"]
+    end
+    
+    Step1 --> Step2
+    Step2 --> Step3
+    
+    style Step1 fill:#e8f5e8
+    style Step2 fill:#fff3e0
+    style Step3 fill:#f3e5f5
+```
 
-```markdown
-Step 1: Archive Discovery          Step 2: Intelligent Processing       Step 3: Intelligence Generation
-┌─────────────────────┐           ┌─────────────────────────┐           ┌─────────────────────────┐
-│                     │           │                         │           │                         │
-│ 🔍 Auto-Detection   │           │ 🧠 Thread Reconstruction│           │ 📊 CSV Data Files       │
-│   • tweets.js       │ ────────▶ │   • Connect all replies │ ────────▶ │   • Structured data     │
-│   • direct-msgs.js  │           │   • Build conversations │           │   • Analysis ready      │
-│   • headers.js      │           │                         │           │                         │
-│                     │           │ 💬 DM Enhancement       │           │ 📝 Human-Readable       │
-│ 📁 Output Setup     │           │   • Relative timestamps │           │   • Natural flow        │
-│   • Timestamped dir │           │   • Smart timing        │           │   • Conversation style  │
-│   • Safe naming     │           │   • A/B participants    │           │                         │
-│                     │           │                         │           │ 🔮 LLM-Ready Insights  │
-│ 🛡️ Privacy First    │           │ 🔐 Blake3 Anonymization│           │   • Relationship maps   │
-│   • Local only      │           │   • Hash user IDs       │           │   • Behavioral patterns │
-│   • No network      │           │   • Protect identity    │           │   • AI analysis prompts │
-└─────────────────────┘           └─────────────────────────┘           └─────────────────────────┘
+**The Magic**: Like a digital archaeologist, Tweet-Scrolls discovers your Twitter archive files, intelligently reconstructs conversation threads, and transforms them into LLM-ready insights - all while keeping your data safe and local.
 
 ### Thread Compilation Example
 
-Like transforming scattered pages into a coherent storybook, Tweet-Scrolls compiles individual JSON messages
-into cohesive conversation threads that are easily digestible by Large Language Models.
+Like transforming scattered pages into a coherent storybook, Tweet-Scrolls compiles individual JSON messages into cohesive conversation threads that are easily digestible by Large Language Models.
 
-```
-Raw JSON Messages (Individual DMs)         🔄 Transformation Process           📚 LLM-Ready Thread
-┌─────────────────────────────────┐      ┌─────────────────────────┐        ┌─────────────────────────┐
-│ {                               │      │                         │        │  💬 Conversation        │
-│   "messageCreate": {            │      │  🔍 Message Parsing     │        │     (3 messages)        │
-│     "id": "1",                  │ ────▶│   • Extract content     │ ─────▶ │  ────────────────────── │
-│     "senderId": "123",          │      │   • Parse timestamps    │        │  A: Hello!              │
-│     "recipientId": "456",        │      │   • Identify participants│        │     (5 minutes later)   │
-│     "text": "Hello!",           │      │                         │        │  B: Hi there!           │
-│     "createdAt": "..."          │      │  🧵 Thread Construction │        │     (5 minutes later)    │
-│   }                             │      │   • Order chronologically│       │  A: How are you?        │
-│ }                               │      │   • Add relative timing │        │  ────────────────────── │
-│                                 │      │   • Format for readability│       │                         │
-│ {                               │      │                         │        │  📊 Metadata:           │
-│   "messageCreate": {            │      │  🔐 Privacy Protection  │        │     • 3 messages        │
-│     "id": "2",                  │ ────▶│   • Hash user IDs       │ ─────▶ │     • 10 min duration    │
-│     "senderId": "456",          │      │   • Remove sensitive data│        │     • A/B participants   │
-│     "text": "Hi there!",        │      │                         │        │                         │
-│     "createdAt": "..."          │      │  🎯 LLM Optimization    │        │                         │
-│   }                             │      │   • Clean formatting    │        │                         │
-│ }                               │      │   • Preserve context    │        │                         │
-│                                 │      │   • Add timing context  │        │                         │
-│ {                               │      │                         │        │                         │
-│   "messageCreate": {            │      └─────────────────────────┘        └─────────────────────────┘
-│     "id": "3",                  │                                                        │
-│     "senderId": "123",          │                                           ┌────────────┴────────────┐
-│     "text": "How are you?",     │                                           │                         │
-│     "createdAt": "..."          │                                           │  These structured       │
-│   }                             │                                           │  conversation threads   │
-│ }                               │                                           │  are now ready for      │
-└─────────────────────────────────┘                                           │  consumption by LLMs    │
-                                                                              │  with preserved context │
-                                                                              │  and timing information │
-                                                                              └─────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Input ["📄 Raw JSON Messages"]
+        A1["msg1: 'Hello!'<br/>sender: A<br/>id: 1"]
+        A2["msg2: 'Hi there!'<br/>sender: B<br/>id: 2"]
+        A3["msg3: 'How are you?'<br/>sender: A<br/>id: 3"]
+    end
+    
+    subgraph Processing ["🧠 Transformation Engine"]
+        B1["🔍 Parse Content<br/>Extract text & metadata"]
+        B2["⏰ Add Timestamps<br/>Calculate relative timing"]
+        B3["🧵 Thread Assembly<br/>Order chronologically"]
+        B4["🔐 Anonymization<br/>Hash user identifiers"]
+    end
+    
+    subgraph Output ["💬 LLM-Ready Thread"]
+        C1["A: Hello!<br/>(5 minutes later)<br/>B: Hi there!<br/>(5 minutes later)<br/>A: How are you?"]
+        C2["📊 Metadata:<br/>• 3 messages<br/>• 10 min duration<br/>• A ↔ B participants<br/>• Blake3 anonymized"]
+    end
+    
+    Input --> Processing
+    Processing --> Output
+    
+    A1 --> B1
+    A2 --> B2
+    A3 --> B3
+    B1 --> B4
+    B2 --> B4
+    B3 --> B4
+    B4 --> C1
+    B4 --> C2
+    
+    style Input fill:#ffe0e0
+    style Processing fill:#fff3e0
+    style Output fill:#e8f5e8
 ```
 
-### The Magic Happens in 3 Steps
-
-```
-Step 1: Archive Discovery          Step 2: Intelligent Processing       Step 3: Intelligence Generation
-┌─────────────────────┐           ┌─────────────────────────┐           ┌─────────────────────────┐
-│                     │           │                         │           │                         │
-│ 🔍 Auto-Detection   │           │ 🧠 Thread Reconstruction│           │ 📊 CSV Data Files       │
-│   • tweets.js       │ ────────▶ │   • Connect all replies │ ────────▶ │   • Structured data     │
-│   • direct-msgs.js  │           │   • Build conversations │           │   • Analysis ready      │
-│   • headers.js      │           │                         │           │                         │
-│                     │           │ 💬 DM Enhancement       │           │ 📝 Human-Readable       │
-│ 📁 Output Setup     │           │   • Relative timestamps │           │   • Natural flow        │
-│   • Timestamped dir │           │   • Smart timing        │           │   • Conversation style  │
-│   • Safe naming     │           │   • A/B participants    │           │                         │
-│                     │           │                         │           │ 🔮 LLM-Ready Insights  │
-│ 🛡️ Privacy First    │           │ 🔐 Blake3 Anonymization│           │   • Relationship maps   │
-│   • Local only      │           │   • Hash user IDs       │           │   • Behavioral patterns │
-│   • No network      │           │   • Protect identity    │           │   • AI analysis prompts │
-└─────────────────────┘           └─────────────────────────┘           └─────────────────────────┘
-```
+**The Transformation**: Individual JSON objects become natural conversation flow with timing context and participant anonymization - perfect for LLM analysis and pattern recognition.
 
 ## Installation & Usage
 
@@ -142,7 +139,7 @@ cargo build --release
 # Basic usage (recommended)
 ./target/release/tweet-scrolls /path/to/archive
 
-# Custom output location  
+# Custom output location
 ./target/release/tweet-scrolls /path/to/archive /path/to/output
 
 # Interactive mode
@@ -221,140 +218,103 @@ MIT License
 
 ## Architecture
 
-```
-Tweet-Scrolls Architecture
-==========================
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              CLI Layer                                      │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  src/main.rs                    src/cli.rs                                  │
-│  • Entry point               • Command line interface                       │
-│  • User interaction          • Argument parsing                             │
-│  • Output directory creation • Interactive mode                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-                │
-                ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           Processing Layer                                  │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  src/processing/                                                            │
-│  • data_structures.rs    - Core data structures                             │
-│  • file_io.rs           - File input/output operations                      │
-│  • tweets.rs            - Tweet parsing and processing                       │
-│  • direct_messages.rs   - DM parsing and processing                          │
-│  • reply_threads.rs     - Thread reconstruction logic                        │
-│  • dm_threads.rs        - DM conversation threading                          │
-│  • dm_headers_analyzer.rs - DM header analysis                               │
-│  • mvp_analyzer.rs      - Minimal viable product analysis                    │
-└─────────────────────────────────────────────────────────────────────────────┘
-                │
-                ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            Analysis Layer                                   │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  src/services/                                                              │
-│  • analyzer.rs          - Core analysis engine                              │
-│  • timeline.rs          - Timeline data structures                         │
-│  • timeline_analyzer.rs  - Timeline pattern analysis                        │
-│                                                                             │
-│  src/relationship/                                                         │
-│  • analyzer.rs          - Relationship intelligence engine                 │
-│  • anonymization.rs     - Privacy protection (Blake3 hashing)               │
-│  • communication.rs     - Communication pattern analysis                     │
-│  • timeline_integration.rs - Timeline integration with relationships         │
-└─────────────────────────────────────────────────────────────────────────────┘
-                │
-                ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           Output Layer                                      │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  src/relationship/                                                          │
-│  • file_generation.rs    - File generation orchestration                      │
-│  • file_writer.rs       - File writing operations                           │
-│  • text_generators.rs   - Human-readable text generation                     │
-│  • prompts_generator.rs - LLM analysis prompt generation                     │
-│  • timeline_text.rs     - Timeline text formatting                           │
-│                                                                             │
-│  src/utils/                                                                 │
-│  • enhanced_csv_writer.rs - CSV output generation                            │
-└─────────────────────────────────────────────────────────────────────────────┘
-                │
-                ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           Data Models                                     │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  src/models/                                                                │
-│  • direct_message.rs    - DM data structures                                │
-│  • dm_headers.rs        - DM header structures                              │
-│  • interaction.rs      - Interaction tracking                               │
-│  • profile.rs          - User profile structures                            │
-│  • statistics.rs       - Statistical data structures                         │
-│  • timeline.rs          - Timeline data structures                          │
-│  • tweet_classification.rs - Tweet categorization                            │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph CLI ["🖥️ CLI Layer"]
+        A1["main.rs<br/>Entry point<br/>User interaction"]
+        A2["cli.rs<br/>Command line interface<br/>Argument parsing<br/>Interactive mode"]
+    end
+    
+    subgraph Processing ["⚙️ Processing Layer"]
+        B1["data_structures.rs<br/>Core data structures"]
+        B2["file_io.rs<br/>File input/output"]
+        B3["tweets.rs<br/>Tweet parsing"]
+        B4["direct_messages.rs<br/>DM parsing"]
+        B5["reply_threads.rs<br/>Thread reconstruction"]
+        B6["dm_threads.rs<br/>DM threading"]
+    end
+    
+    subgraph Analysis ["🔍 Analysis Layer"]
+        C1["analyzer.rs<br/>Core analysis engine"]
+        C2["timeline_analyzer.rs<br/>Timeline patterns"]
+        C3["relationship/analyzer.rs<br/>Relationship intelligence"]
+        C4["anonymization.rs<br/>Privacy protection"]
+    end
+    
+    subgraph Output ["📤 Output Layer"]
+        D1["file_generation.rs<br/>File orchestration"]
+        D2["text_generators.rs<br/>Human-readable text"]
+        D3["prompts_generator.rs<br/>LLM analysis prompts"]
+        D4["enhanced_csv_writer.rs<br/>CSV output"]
+    end
+    
+    subgraph Models ["📦 Data Models"]
+        E1["direct_message.rs<br/>DM structures"]
+        E2["profile.rs<br/>User profiles"]
+        E3["statistics.rs<br/>Statistical data"]
+        E4["timeline.rs<br/>Timeline structures"]
+    end
+    
+    CLI --> Processing
+    Processing --> Analysis
+    Analysis --> Output
+    Models -.-> Processing
+    Models -.-> Analysis
+    Models -.-> Output
+    
+    style CLI fill:#e3f2fd
+    style Processing fill:#fff3e0
+    style Analysis fill:#f3e5f5
+    style Output fill:#e8f5e8
+    style Models fill:#fce4ec
 ```
 
 ## LLM Assimilation Journey
 
 *"Like the Sorting Hat understanding a student's mind..."*
 
+```mermaid
+graph TB
+    subgraph Files ["📊 Generated Data Files"]
+        A1["threads_*.csv<br/>Tweet conversations<br/>(structured)"]
+        A2["dm_threads_*.csv<br/>DM conversations<br/>(structured)"]
+        A3["timeline_analysis_*.csv<br/>Activity patterns<br/>(structured)"]
+        A4["*.txt files<br/>Human-readable<br/>formats"]
+    end
+    
+    subgraph Questions ["🧠 Ready-Made Analysis Questions"]
+        B1["'Who do I interact<br/>with most frequently?'"]
+        B2["'When am I<br/>most active?'"]
+        B3["'How has my communication<br/>style evolved?'"]
+        B4["'What are my<br/>conversation patterns?'"]
+    end
+    
+    subgraph Intelligence ["🎯 LLM-Ready Intelligence"]
+        C1["📈 Relationship Analysis<br/>• Interaction frequency<br/>• Communication patterns"]
+        C2["⏰ Timeline Patterns<br/>• Peak activity hours<br/>• Response timing"]
+        C3["🔍 Behavioral Insights<br/>• Style evolution<br/>• Pattern recognition"]
+        C4["🔐 Privacy Protected<br/>• Blake3 anonymization<br/>• Local processing"]
+    end
+    
+    Files --> Intelligence
+    Questions --> Intelligence
+    
+    A1 --> C1
+    A2 --> C1
+    A3 --> C2
+    A4 --> C3
+    
+    B1 --> C1
+    B2 --> C2
+    B3 --> C3
+    B4 --> C3
+    
+    style Files fill:#e3f2fd
+    style Questions fill:#fff3e0
+    style Intelligence fill:#e8f5e8
 ```
-🧠 LLM Perspective                    📊 Tweet-Scrolls Output                    🎯 Insights Revealed
-┌─────────────────────┐              ┌─────────────────────────┐                ┌─────────────────────────┐
-│                     │              │                         │                │                         │
-│  📄 threads_*.csv   │ ◀─────────────│  🧵 Complete Threads   │ ◀──────────────│  📈 Relationship        │
-│  (structured data)  │              │     • All replies       │                │     Analysis            │
-│                     │              │     • Metadata rich     │                │     • Interaction maps  │
-│  📝 threads_*.txt   │ ◀─────────────│                         │ ◀──────────────│                         │
-│  (readable format)  │              │  📝 Readable Threads    │                │  🕐 Timeline Patterns   │
-│                     │              │     • Natural flow      │                │     • Peak hours        │
-│  💬 dm_threads_*.csv│ ◀─────────────│                         │ ◀──────────────│     • Activity rhythms  │
-│  (structured DMs)   │              │  💬 DM Conversations    │                │                         │
-│                     │              │     • A/B style         │                │  🔍 Behavioral Insights │
-│  💭 dm_threads_*.txt│ ◀─────────────│     • Timing context    │ ◀──────────────│     • Response patterns │
-│  (readable DMs)     │              │     • Participant IDs   │                │     • Style evolution   │
-└─────────────────────┘              │                         │                │                         │
-          │                          │  📋 Profile Analysis    │ ◀──────────────│  🎯 Custom Analysis     │
-          │                          │     • User interactions │                │     • AI prompts ready  │
-          │                          │     • Communication     │                │     • Context rich      │
-          │                          │     • Activity timeline │                │                         │
-          │                          └─────────────────────────┘                └─────────────────────────┘
-          │                                     │                                           │
-          │                          ┌──────────┴────────────┐                              │
-          │                          │                       │                              │
-          │                          ▼                       ▼                              │
-          │                📁 Relationship Profiles     🕐 Timeline Analysis                 │
-          │               ┌──────────────────────┐    ┌──────────────────────┐               │
-          │               │                      │    │                      │               │
-          │               │ user_*_profile.txt   │    │ timeline_analysis_*.│               │
-          │               │ interaction_timeline.│    │ csv                  │               │
-          │               │ txt                  │    │ timeline_analysis_*.│               │
-          │               │ llm_analysis_prompts.│    │ txt                  │               │
-          │               │ txt                  │    │                      │               │
-          │               │                      │    │                      │               │
-          │               └──────────────────────┘    └──────────────────────┘               │
-          │                          │                              │                        │
-          │                          ▼                              │                        │
-          │                🎯 AI Analysis Prompts                   │                        │
-          │               ┌─────────────────────────────┐           │                        │
-          │               │                             │           │                        │
-          │               │  "Who does user interact    │           │                        │
-          │               │   with most frequently?"    │           │                        │
-          │               │                             │           │                        │
-          │               │  "What are user's peak      │           │                        │
-          │               │   activity hours?"         │           │                        │
-          │               │                             │           │                        │
-          │               │  "How does user's           │           │                        │
-          │               │   communication style       │           │                        │
-          │               │   change over time?"        │           │                        │
-          │               │                             │           │                        │
-          │               └─────────────────────────────┘           │                        │
-          └───────────────────────────────────────────────────────────────────────────────────┘
-                              These structured insights and analysis prompts are now ready
-                              for consumption by Large Language Models, providing rich context
-                              for deeper understanding of digital interaction patterns.
-```
+
+**The Result**: Your digital conversations become structured intelligence that LLMs can analyze for relationship patterns, behavioral insights, and communication evolution - all with privacy-first anonymization.
 
 ---
 
