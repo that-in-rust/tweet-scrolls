@@ -25,7 +25,7 @@ flowchart TD
     subgraph output ["📤 What You Get"]
         B[📊 Structured Data]
         B1[📝 Human Readable] 
-        B2[🤖 LLM Analysis]
+        B2[📈 Timeline Analysis]
     end
     
     output --> details
@@ -79,7 +79,7 @@ cargo build --release
 
 ## User Journey
 
-### 🏗️ How It Works: From Raw Data to LLM-Ready Gold
+### 🏗️ How It Works: From Raw Data to Organized Intelligence
 
 ```mermaid
 flowchart TD
@@ -129,7 +129,7 @@ flowchart TD
     
     Processing --> Output
     
-    subgraph Output ["💬 LLM-Ready Thread"]
+    subgraph Output ["💬 Organized Thread"]
         C1["A: Hello!<br/>(5 minutes later)<br/>B: Hi there!<br/>(5 minutes later)<br/>A: How are you?"]
     end
     
