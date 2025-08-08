@@ -41,6 +41,34 @@ graph TB
 - **Timeline Analysis**: Shows when you're most active and interaction patterns
 - **Privacy Protection**: All processing happens locally, user IDs are anonymized
 
+## Installation & Usage
+
+### Requirements
+- Rust 1.70+ ([install here](https://rustup.rs))
+- Your Twitter archive (download from Twitter/X settings)
+
+### Quick Start
+```bash
+git clone https://github.com/yourusername/tweet-scrolls.git
+cd tweet-scrolls
+cargo build --release
+
+# Process your archive
+./target/release/tweet-scrolls /path/to/your/twitter/archive
+```
+
+### Usage Options
+```bash
+# Basic usage (recommended)
+./target/release/tweet-scrolls /path/to/archive
+
+# Custom output location
+./target/release/tweet-scrolls /path/to/archive /path/to/output
+
+# Interactive mode
+./target/release/tweet-scrolls
+```
+
 ## User Journey
 
 ### 🏗️ How It Works: From Raw Data to LLM-Ready Gold
@@ -117,34 +145,6 @@ flowchart TD
 ```
 
 **The Transformation**: Individual JSON objects become natural conversation flow with timing context and participant anonymization - perfect for LLM analysis and pattern recognition.
-
-## Installation & Usage
-
-### Requirements
-- Rust 1.70+ ([install here](https://rustup.rs))
-- Your Twitter archive (download from Twitter/X settings)
-
-### Quick Start
-```bash
-git clone https://github.com/yourusername/tweet-scrolls.git
-cd tweet-scrolls
-cargo build --release
-
-# Process your archive
-./target/release/tweet-scrolls /path/to/your/twitter/archive
-```
-
-### Usage Options
-```bash
-# Basic usage (recommended)
-./target/release/tweet-scrolls /path/to/archive
-
-# Custom output location
-./target/release/tweet-scrolls /path/to/archive /path/to/output
-
-# Interactive mode
-./target/release/tweet-scrolls
-```
 
 ## File Details
 
