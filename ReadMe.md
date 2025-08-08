@@ -6,32 +6,40 @@
 ## Input → Output
 
 ```mermaid
-graph TB
-    subgraph Input ["📥 What You Provide"]
-        A["📂 your-twitter-archive/"]
-        A --> B["📄 tweets.js<br/>Your tweet history"]
-        A --> C["💬 direct-messages.js<br/>Private conversations"]
-        A --> D["📋 direct-message-headers.js<br/>Conversation metadata"]
+flowchart TD
+    subgraph input ["📥 What You Provide"]
+        A[📂 Twitter Archive]
+        A1[📄 tweets.js]
+        A2[💬 direct-messages.js]
+        A3[📋 headers.js]
     end
     
-    subgraph Output ["📤 What You Get"]
-        E["📁 output_username_timestamp/"]
-        E --> F["📊 threads_*.csv<br/>Tweet conversations (structured)"]
-        E --> G["📝 threads_*.txt<br/>Tweet conversations (readable)"]
-        E --> H["💬 dm_threads_*.csv<br/>DM conversations (structured)"]
-        E --> I["💭 dm_threads_*.txt<br/>DM conversations (readable)"]
-        E --> J["📈 timeline_analysis_*.csv<br/>Activity patterns (structured)"]
-        E --> K["📋 timeline_analysis_*.txt<br/>Activity insights (readable)"]
-        E --> L["👥 relationship_profiles_*/<br/>Individual relationship analysis"]
-        L --> M["📄 user_*_profile.txt<br/>Per-person interaction history"]
-        L --> N["⏰ interaction_timeline.txt<br/>Chronological activity log"]
-        L --> O["🤖 llm_analysis_prompts.txt<br/>AI-ready analysis questions"]
+    input --> process
+    
+    subgraph process ["⚡ Tweet-Scrolls"]
+        P[🔄 Process & Analyze]
     end
     
-    Input --> Output
+    process --> output
     
-    style Input fill:#e1f5fe
-    style Output fill:#f3e5f5
+    subgraph output ["📤 What You Get"]
+        B[📊 Structured Data]
+        B1[📝 Human Readable] 
+        B2[🤖 LLM Analysis]
+    end
+    
+    output --> details
+    
+    subgraph details ["📋 File Details"]
+        B3[threads_*.csv<br/>dm_threads_*.csv<br/>timeline_*.csv]
+        B4[threads_*.txt<br/>profiles_*/<br/>analysis_*.txt]
+        B5[llm_prompts.txt<br/>relationship_maps<br/>behavioral_patterns]
+    end
+    
+    style input fill:#e8f4fd
+    style process fill:#fff8e1
+    style output fill:#f1f8e9
+    style details fill:#fdf2f8
 ```
 
 ### Key Capabilities
@@ -74,31 +82,26 @@ cargo build --release
 ### 🏗️ How It Works: From Raw Data to LLM-Ready Gold
 
 ```mermaid
-flowchart LR
-    subgraph Step1 ["🔍 Step 1: Discovery"]
-        A1["📂 Auto-detect files<br/>• tweets.js<br/>• direct-messages.js<br/>• headers.js"]
-        A2["📁 Create output directory<br/>• Timestamped naming<br/>• Safe file structure"]
-        A3["🛡️ Initialize privacy<br/>• Local processing only<br/>• No network calls"]
-    end
+flowchart TD
+    A1["🔍 Discovery<br/>📂 Auto-detect files<br/>📁 Setup directories"]
+    A2["🧵 Thread Building<br/>💬 Connect replies<br/>🔗 Build conversations"]
+    A3["💬 DM Organization<br/>⏰ Add timestamps<br/>👥 A/B participants"]
+    A4["🔐 Anonymization<br/>🔒 Blake3 hashing<br/>🛡️ Protect identity"]
+    A5["📊 Data Generation<br/>📈 CSV files<br/>📝 Human-readable"]
+    A6["🤖 LLM Preparation<br/>🎯 Analysis prompts<br/>🔮 Intelligence ready"]
     
-    subgraph Step2 ["🧠 Step 2: Processing"]
-        B1["🧵 Thread Building<br/>• Connect all replies<br/>• Build conversations"]
-        B2["💬 DM Organization<br/>• Add timestamps<br/>• Smart timing<br/>• A/B participants"]
-        B3["🔐 Anonymization<br/>• Blake3 hash user IDs<br/>• Protect identity"]
-    end
+    A1 --> A2
+    A2 --> A3
+    A3 --> A4
+    A4 --> A5
+    A5 --> A6
     
-    subgraph Step3 ["🎯 Step 3: Intelligence"]
-        C1["📊 CSV Data Files<br/>• Structured data<br/>• Analysis ready"]
-        C2["📝 Human-Readable<br/>• Natural flow<br/>• Conversation style"]
-        C3["🤖 LLM Prompts<br/>• Relationship maps<br/>• Behavioral patterns<br/>• AI analysis"]
-    end
-    
-    Step1 --> Step2
-    Step2 --> Step3
-    
-    style Step1 fill:#e8f5e8
-    style Step2 fill:#fff3e0
-    style Step3 fill:#f3e5f5
+    style A1 fill:#e8f5e8
+    style A2 fill:#e8f5e8  
+    style A3 fill:#fff3e0
+    style A4 fill:#fff3e0
+    style A5 fill:#f3e5f5
+    style A6 fill:#f3e5f5
 ```
 
 **The Magic**: Like a digital archaeologist, Tweet-Scrolls discovers your Twitter archive files, intelligently reconstructs conversation threads, and transforms them into LLM-ready insights - all while keeping your data safe and local.
@@ -110,10 +113,12 @@ Like transforming scattered pages into a coherent storybook, Tweet-Scrolls compi
 ```mermaid
 flowchart TD
     subgraph Input ["📄 Raw JSON Messages"]
-        A1["msg1: 'Hello!'<br/>sender: A<br/>id: 1"]
-        A2["msg2: 'Hi there!'<br/>sender: B<br/>id: 2"]
-        A3["msg3: 'How are you?'<br/>sender: A<br/>id: 3"]
+        A1["msg1: 'Hello!'<br/>sender: A, id: 1"]
+        A2["msg2: 'Hi there!'<br/>sender: B, id: 2"]
+        A3["msg3: 'How are you?'<br/>sender: A, id: 3"]
     end
+    
+    Input --> Processing
     
     subgraph Processing ["🧠 Transformation Engine"]
         B1["🔍 Parse Content<br/>Extract text & metadata"]
@@ -122,26 +127,22 @@ flowchart TD
         B4["🔐 Anonymization<br/>Hash user identifiers"]
     end
     
-    subgraph Output ["💬 LLM-Ready Thread"]
-        C1["A: Hello!<br/>(5 minutes later)<br/>B: Hi there!<br/>(5 minutes later)<br/>A: How are you?"]
-        C2["📊 Metadata:<br/>• 3 messages<br/>• 10 min duration<br/>• A ↔ B participants<br/>• Blake3 anonymized"]
-    end
-    
-    Input --> Processing
     Processing --> Output
     
-    A1 --> B1
-    A2 --> B2
-    A3 --> B3
-    B1 --> B4
-    B2 --> B4
-    B3 --> B4
-    B4 --> C1
-    B4 --> C2
+    subgraph Output ["💬 LLM-Ready Thread"]
+        C1["A: Hello!<br/>(5 minutes later)<br/>B: Hi there!<br/>(5 minutes later)<br/>A: How are you?"]
+    end
+    
+    Output --> Metadata
+    
+    subgraph Metadata ["📊 Metadata"]
+        C2["• 3 messages<br/>• 10 min duration<br/>• A ↔ B participants<br/>• Blake3 anonymized"]
+    end
     
     style Input fill:#ffe0e0
     style Processing fill:#fff3e0
     style Output fill:#e8f5e8
+    style Metadata fill:#f0f9ff
 ```
 
 **The Transformation**: Individual JSON objects become natural conversation flow with timing context and participant anonymization - perfect for LLM analysis and pattern recognition.
@@ -274,44 +275,40 @@ graph TD
 *"Like the Sorting Hat understanding a student's mind..."*
 
 ```mermaid
-graph TB
+flowchart TD
     subgraph Files ["📊 Generated Data Files"]
-        A1["threads_*.csv<br/>Tweet conversations<br/>(structured)"]
-        A2["dm_threads_*.csv<br/>DM conversations<br/>(structured)"]
-        A3["timeline_analysis_*.csv<br/>Activity patterns<br/>(structured)"]
-        A4["*.txt files<br/>Human-readable<br/>formats"]
+        A1["threads_*.csv<br/>Tweet conversations"]
+        A2["dm_threads_*.csv<br/>DM conversations"]
+        A3["timeline_analysis_*.csv<br/>Activity patterns"]
+        A4["*.txt files<br/>Human-readable formats"]
     end
     
+    Files --> Questions
+    
     subgraph Questions ["🧠 Ready-Made Analysis Questions"]
-        B1["'Who do I interact<br/>with most frequently?'"]
-        B2["'When am I<br/>most active?'"]
-        B3["'How has my communication<br/>style evolved?'"]
-        B4["'What are my<br/>conversation patterns?'"]
+        B1["'Who do I interact with most?'"]
+        B2["'When am I most active?'"]
+        B3["'How has my style evolved?'"]
+        B4["'What are my patterns?'"]
     end
+    
+    Questions --> Intelligence
     
     subgraph Intelligence ["🎯 LLM-Ready Intelligence"]
         C1["📈 Relationship Analysis<br/>• Interaction frequency<br/>• Communication patterns"]
         C2["⏰ Timeline Patterns<br/>• Peak activity hours<br/>• Response timing"]
-        C3["🔍 Behavioral Insights<br/>• Style evolution<br/>• Pattern recognition"]
-        C4["🔐 Privacy Protected<br/>• Blake3 anonymization<br/>• Local processing"]
     end
     
-    Files --> Intelligence
-    Questions --> Intelligence
+    Intelligence --> Privacy
     
-    A1 --> C1
-    A2 --> C1
-    A3 --> C2
-    A4 --> C3
-    
-    B1 --> C1
-    B2 --> C2
-    B3 --> C3
-    B4 --> C3
+    subgraph Privacy ["🔐 Privacy Protected"]
+        D1["🔒 Blake3 anonymization<br/>🛡️ Local processing<br/>🚫 No network calls"]
+    end
     
     style Files fill:#e3f2fd
     style Questions fill:#fff3e0
     style Intelligence fill:#e8f5e8
+    style Privacy fill:#fdf2f8
 ```
 
 **The Result**: Your digital conversations become structured intelligence that LLMs can analyze for relationship patterns, behavioral insights, and communication evolution - all with privacy-first anonymization.
