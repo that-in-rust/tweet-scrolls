@@ -17,7 +17,7 @@ impl CsvWriter {
         let mut writer = CsvWriterLib::from_writer(BufWriter::new(file));
 
         // Write headers
-        writer.write_record(&[
+        writer.write_record([
             "Thread ID",
             "Date time of first tweet",
             "Number of Tweets in Thread",
@@ -132,7 +132,7 @@ fn prompt_input_from_reader<R: std::io::BufRead>(reader: &mut R, prompt: &str) -
 /// keeps the original public API intact for production usage while delegating
 /// to the injectable function above for easier testing.
 pub fn prompt_input(prompt: &str) -> Result<String> {
-    use std::io::{self, BufRead};
+    use std::io;
 
     let stdin = io::stdin();
     let mut handle = stdin.lock();

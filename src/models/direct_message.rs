@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 /// Represents a direct message in a conversation
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DmMessage {
     /// The message creation details
     #[serde(rename = "messageCreate")]
@@ -9,7 +9,7 @@ pub struct DmMessage {
 }
 
 /// Represents the creation details of a direct message
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DmMessageCreate {
     /// The unique identifier for the message
     pub id: Option<String>,
@@ -39,7 +39,7 @@ pub struct DmMessageCreate {
 }
 
 /// Represents a reaction to a direct message
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DmReaction {
     /// The ID of the user who sent the reaction
     #[serde(rename = "senderId")]
@@ -56,7 +56,7 @@ pub struct DmReaction {
 }
 
 /// Represents a URL in a direct message
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DmUrl {
     /// The shortened URL
     pub url: String,
@@ -67,7 +67,7 @@ pub struct DmUrl {
 }
 
 /// Represents an edit history entry for a direct message
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DmEditHistory {
     /// When the edit was made (Unix timestamp as string)
     #[serde(rename = "createdAtSec")]
@@ -78,7 +78,7 @@ pub struct DmEditHistory {
 }
 
 /// Represents a DM conversation wrapper from the Twitter archive
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DmWrapper {
     /// The conversation details
     #[serde(rename = "dmConversation")]
@@ -86,7 +86,7 @@ pub struct DmWrapper {
 }
 
 /// Represents a DM conversation
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DmConversation {
     /// The conversation ID (format: "user1-user2")
     #[serde(rename = "conversationId")]

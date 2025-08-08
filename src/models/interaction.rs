@@ -7,16 +7,27 @@ use std::fmt;
 /// Represents different types of interactions in the system
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InteractionType {
+    /// Direct message sent by the user
     DmSent,
+    /// Direct message received by the user
     DmReceived,
+    /// Tweet sent by the user
     TweetSent,
+    /// Tweet received by the user
     TweetReceived,
+    /// Mention of the user in a tweet
     Mention,
+    /// Reply to a tweet
     Reply,
+    /// Reply to a tweet by the user
     TweetReply,
+    /// Like/favorite of a tweet
     Like,
+    /// Retweet of another tweet
     Retweet,
+    /// Quote tweet of another tweet
     Quote,
+    /// Other type of interaction
     Other,
 }
 

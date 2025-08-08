@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 use tempfile::tempdir;
-use tokio;
+
 use tweet_scrolls::*;
 
 // ============================================================================
@@ -94,7 +94,7 @@ fn create_realistic_tweet_data() -> Vec<processing::data_structures::TweetWrappe
                 in_reply_to_status_id_str: None,
                 in_reply_to_user_id: None,
                 in_reply_to_user_id_str: None,
-                in_reply_to_screen_name: None,
+                in_reply_to_screen_name: Some("testuser".to_string()),
                 edit_info: None,
                 entities: TweetEntities {
                     hashtags: vec![],
@@ -159,7 +159,7 @@ fn create_realistic_tweet_data() -> Vec<processing::data_structures::TweetWrappe
 
 #[tokio::test]
 async fn test_tweet_processing_end_to_end() {
-    let temp_dir = tempdir().unwrap();
+    let _temp_dir = tempdir().unwrap();
     let tweets = create_realistic_tweet_data();
     
     // Test the core tweet processing pipeline
@@ -186,7 +186,7 @@ async fn test_tweet_processing_end_to_end() {
 
 #[tokio::test]
 async fn test_dm_processing_end_to_end() {
-    let temp_dir = tempdir().unwrap();
+    let _temp_dir = tempdir().unwrap();
     let dm_data = create_realistic_dm_data();
     
     // Test the core DM processing pipeline
@@ -240,17 +240,17 @@ async fn test_relationship_analysis_pipeline() {
 
 #[tokio::test]
 async fn test_file_output_generation() {
-    let temp_dir = tempdir().unwrap();
-    let output_dir = temp_dir.path().to_str().unwrap();
+    let _temp_dir = tempdir().unwrap();
+    let output_dir = _temp_dir.path().to_str().unwrap();
     
     let tweets = create_realistic_tweet_data();
-    let dm_data = create_realistic_dm_data();
+    let _dm_data = create_realistic_dm_data();
     
     // Test CSV output generation
     let threads = tweet_scrolls::processing::tweets::process_tweets_simple(&tweets, "testuser").await.unwrap();
     
     // Create output directory
-    let timestamp = 1234567890; // Fixed timestamp for testing
+    let _timestamp = 1234567890; // Fixed timestamp for testing
     let output_path = std::path::Path::new(output_dir).join("output_testuser_1234567890");
     std::fs::create_dir_all(&output_path).unwrap();
     
@@ -294,11 +294,11 @@ async fn test_file_output_generation() {
     // Verify tweet type and URL are populated
     for record in records {
         let tweet_type = record.get(2).unwrap(); // tweet_type column
-        let twitter_url = record.get(8).unwrap(); // twitter_url column
+        let twitter_url = record.get(11).unwrap(); // twitter_url column
         
         // Verify tweet type is one of the expected values
         assert!(
-            ["Original", "ReplyToUser", "ReplyToOther"].contains(&tweet_type),
+            ["Original", "ReplyToUser", "ReplyToOthers"].contains(&tweet_type),
             "Unexpected tweet type: {}",
             tweet_type
         );
@@ -482,18 +482,12 @@ fn test_find_most_active_day_empty() {
 }
 
 // File Generation Tests
-#[test]
-fn test_llm_file_generator_creation() {
-    let generator = relationship::file_generation::LLMFileGenerator::new("/tmp/test", "testuser", 1234567890);
-    // Test that generator can be created successfully
-    assert!(true);
-}
 
 #[tokio::test]
 async fn test_create_directory_structure() {
-    let temp_dir = tempdir().unwrap();
+    let _temp_dir = tempdir().unwrap();
     let generator = relationship::file_generation::LLMFileGenerator::new(
-        temp_dir.path().to_str().unwrap(), 
+        _temp_dir.path().to_str().unwrap(), 
         "testuser", 
         1234567890
     );
@@ -597,7 +591,7 @@ fn test_tweet_creation() {
 
 #[test]
 fn test_thread_creation() {
-    use processing::data_structures::{Tweet, TweetEntities, Thread};
+    use processing::data_structures::{Tweet, TweetEntities};
     
     let tweet = Tweet {
         id_str: "123".to_string(),

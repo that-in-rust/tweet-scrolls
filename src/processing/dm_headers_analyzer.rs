@@ -7,14 +7,20 @@ use tokio::fs;
 
 /// Fast DM relationship analyzer using headers-only data
 pub struct DmHeadersAnalyzer {
+    /// Map of user IDs to their relationship data
     pub relationships: HashMap<String, SimpleRelationship>,
+    /// Map of hour (0-23) to message count
     pub hourly_activity: HashMap<u32, u32>,
+    /// Map of day name to message count
     pub daily_activity: HashMap<String, u32>,
+    /// Total number of messages processed
     pub total_messages: u32,
+    /// Number of unique conversations found
     pub unique_conversations: u32,
 }
 
 impl DmHeadersAnalyzer {
+    /// Creates a new DM headers analyzer
     pub fn new() -> Self {
         Self {
             relationships: HashMap::new(),
@@ -92,7 +98,7 @@ impl DmHeadersAnalyzer {
         Ok(())
     }
 
-    fn process_message_header(&mut self, message: &DmHeaderMessage, user_id: &str, other_participant: &str) -> Result<()> {
+    fn process_message_header(&mut self, message: &DmHeaderMessage, _user_id: &str, other_participant: &str) -> Result<()> {
         let msg_create = &message.message_create;
         self.total_messages += 1;
 
@@ -163,18 +169,26 @@ impl DmHeadersAnalyzer {
 /// Analysis results from DM headers processing
 #[derive(Debug, Clone)]
 pub struct DmHeadersAnalysisResult {
+    /// Map of user IDs to their relationship data
     pub relationships: HashMap<String, SimpleRelationship>,
+    /// Map of hour (0-23) to message count
     pub hourly_activity: HashMap<u32, u32>,
+    /// Map of day name to message count
     pub daily_activity: HashMap<String, u32>,
 }
 
 /// Performance statistics for DM headers analysis
 #[derive(Debug)]
 pub struct DmHeadersPerformanceStats {
+    /// Total number of messages processed
     pub total_messages_processed: u32,
+    /// Number of unique conversations found
     pub unique_conversations: u32,
+    /// Number of unique relationships (distinct users)
     pub unique_relationships: u32,
+    /// Most active hour and its message count (hour, count)
     pub peak_hour: Option<(u32, u32)>,
+    /// Most active day and its message count (day_name, count)
     pub most_active_day: Option<(String, u32)>,
 }
 

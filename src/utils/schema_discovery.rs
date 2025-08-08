@@ -8,19 +8,34 @@ use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
+/// Information about a field discovered in the JSON schema
 pub struct FieldInfo {
+    /// Set of unique types seen for this field
     pub types_seen: HashSet<String>,
+    /// Whether this field is optional (not present in all records)
     pub is_optional: bool,
+    /// Sample values seen for this field
     pub sample_values: Vec<String>,
+    /// Number of times this field has been seen
     pub occurrence_count: usize,
 }
 
+/// Schema discovery utility for JSON data
 pub struct SchemaDiscovery {
+    /// Map of field names to their discovered information
     pub fields: HashMap<String, FieldInfo>,
+    /// Total number of items analyzed
     pub total_items_analyzed: usize,
 }
 
+impl Default for SchemaDiscovery {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SchemaDiscovery {
+    /// Creates a new schema discovery instance
     pub fn new() -> Self {
         Self {
             fields: HashMap::new(),
@@ -28,6 +43,11 @@ impl SchemaDiscovery {
         }
     }
 
+    /// Analyzes a JSON sample to discover field types and patterns
+    /// 
+    /// # Arguments
+    /// * `json_content` - The raw JSON content to analyze
+    /// * `sample_size` - Maximum number of items to analyze
     pub fn analyze_json_sample(&mut self, json_content: &str, sample_size: usize) -> Result<()> {
         println!("🔍 Starting schema discovery analysis...");
         
@@ -143,6 +163,7 @@ impl SchemaDiscovery {
         }
     }
 
+    /// Generates a human-readable report of the discovered schema
     pub fn generate_report(&self) -> String {
         let mut report = String::new();
         report.push_str("# JSON Schema Discovery Report\n\n");
@@ -156,7 +177,7 @@ impl SchemaDiscovery {
         let required_count = self.fields.len() - optional_count;
         let mixed_type_count = self.fields.values().filter(|f| f.types_seen.len() > 1).count();
         
-        report.push_str(&format!("**Summary:**\n"));
+        report.push_str("**Summary:**\n");
         report.push_str(&format!("- Total fields: {}\n", self.fields.len()));
         report.push_str(&format!("- Required fields: {}\n", required_count));
         report.push_str(&format!("- Optional fields: {}\n", optional_count));
@@ -175,6 +196,7 @@ impl SchemaDiscovery {
         report
     }
 
+    /// Returns fields that have multiple types or other problematic patterns
     pub fn get_problematic_fields(&self) -> Vec<(String, &FieldInfo)> {
         self.fields.iter()
             .filter(|(_, info)| info.types_seen.len() > 1 || info.types_seen.contains("Object"))

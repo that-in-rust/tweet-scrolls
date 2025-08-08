@@ -1,7 +1,12 @@
 //! Utility functions and helpers
 
+/// Enhanced CSV writer for tweet data
 pub mod enhanced_csv_writer;
+/// File splitter utility for large files
+pub mod file_splitter;
+/// Schema discovery utilities for JSON data
 pub mod schema_discovery;
+/// Tweet classification utilities
 pub mod tweet_classifier;
 
 use anyhow::{Context, Result};
@@ -56,7 +61,7 @@ pub fn format_timestamp(timestamp: &DateTime<Utc>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{Duration, TimeZone, Utc};
+    use chrono::{Duration, Utc};
     use std::io::Write;
     use tempfile::NamedTempFile;
 

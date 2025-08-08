@@ -28,8 +28,7 @@ pub async fn main_analyze_relationships(
 
 /// Generate the user prompt for relationship analysis
 pub fn generate_relationship_analysis_prompt() -> String {
-    format!(
-        "🔍 Tweet-Scrolls can generate comprehensive relationship intelligence profiles\n\
+    "🔍 Tweet-Scrolls can generate comprehensive relationship intelligence profiles\n\
         from your Twitter data, including:\n\
         \n\
         • Individual user interaction profiles\n\
@@ -40,8 +39,7 @@ pub fn generate_relationship_analysis_prompt() -> String {
         \n\
         This will create detailed files in a 'relationship_profiles' directory.\n\
         \n\
-        Would you like to generate relationship intelligence profiles? (y/n): "
-    )
+        Would you like to generate relationship intelligence profiles? (y/n): ".to_string()
 }
 
 /// Determine if user wants to run relationship analysis

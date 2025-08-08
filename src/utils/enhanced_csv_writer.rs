@@ -1,30 +1,44 @@
 use crate::processing::data_structures::{Tweet, Thread};
 use crate::utils::tweet_classifier::{classify_tweet_type, generate_twitter_url, create_reply_context};
-use crate::models::tweet_classification::TweetType;
+
 use anyhow::Result;
 use csv::WriterBuilder;
 use serde::Serialize;
 use std::fs::File;
-use tokio::fs::OpenOptions;
-use tokio::io::AsyncWriteExt;
+
 
 /// CSV record structure for enhanced tweet data
 #[derive(Debug, Serialize)]
 pub struct CsvRecord {
+    /// Unique identifier of the tweet
     pub tweet_id: String,
+    /// Full text content of the tweet
     pub tweet_text: String,
+    /// Type of tweet (Original, ReplyToUser, ReplyToOthers)
     pub tweet_type: String,
+    /// Creation timestamp of the tweet
     pub created_at: String,
+    /// Number of favorites/likes on the tweet
     pub favorite_count: String,
+    /// Number of retweets
     pub retweet_count: String,
+    /// Unique identifier of the thread this tweet belongs to
     pub thread_id: String,
+    /// Position of this tweet in its thread (1-based)
     pub thread_position: usize,
+    /// Total number of tweets in this thread
     pub thread_tweet_count: usize,
+    /// Total number of favorites/likes across all tweets in the thread
     pub thread_favorite_count: u32,
+    /// Total number of retweets across all tweets in the thread
     pub thread_retweet_count: u32,
+    /// URL to view this tweet on Twitter
     pub twitter_url: String,
+    /// Context about what this tweet is replying to
     pub reply_context: String,
+    /// Language code of the tweet
     pub lang: String,
+    /// Source application used to post the tweet
     pub source: String,
 }
 

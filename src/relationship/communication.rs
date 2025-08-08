@@ -7,9 +7,13 @@ use crate::models::direct_message::DmMessage;
 /// Communication frequency analysis
 #[derive(Debug, Clone)]
 pub struct CommunicationFrequency {
+    /// Map of (year, month) to count of messages sent
     pub sent_per_month: HashMap<(i32, u32), u32>,
+    /// Map of (year, month) to count of messages received
     pub received_per_month: HashMap<(i32, u32), u32>,
+    /// Average number of messages sent per month
     pub avg_per_month_sent: f64,
+    /// Average number of messages received per month
     pub avg_per_month_received: f64,
 }
 
@@ -248,7 +252,7 @@ mod tests {
 
     #[test]
     fn test_invalid_timestamps() {
-        use crate::models::direct_message::{DmReaction, DmUrl, DmEditHistory};
+        
         
         let messages = vec![
             DmMessage {

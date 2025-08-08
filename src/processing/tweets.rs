@@ -7,10 +7,10 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::time::Instant;
 use tokio::fs as async_fs;
-use tokio::sync::mpsc as async_mpsc;
 use tokio::task;
 
-use super::data_structures::{Tweet, TweetEntities, TweetWrapper, Thread};
+#[allow(unused_imports)]
+use super::data_structures::{Tweet, TweetWrapper, Thread, TweetEntities};
 use super::file_io::write_threads_to_file;
 use crate::utils::enhanced_csv_writer::EnhancedCsvWriter;
 
@@ -19,7 +19,7 @@ pub async fn process_tweets(
     input_file: &str, 
     screen_name: &str, 
     output_dir: &Path, 
-    timestamp: i64
+    _timestamp: i64
 ) -> Result<()> {
     let screen_name = screen_name.to_string(); // Clone to own the String
 
@@ -55,19 +55,8 @@ pub async fn process_tweets(
     println!("🕴️ Nick Fury is forming tactical units (grouping tweets into conversations)...");
     let screen_name_clone = screen_name.clone();
     let threads = task::spawn_blocking(move || {
-        let mut threads: Vec<Vec<Tweet>> = Vec::new();
-        for tweet in tweets_map.values() {
-            if tweet.in_reply_to_status_id.is_none() || tweet.in_reply_to_screen_name.as_deref() != Some(&screen_name_clone) {
-                let mut thread = vec![tweet.clone()];
-                let mut current_id = tweet.id_str.clone();
-                while let Some(reply) = tweets_map.values().find(|t| t.in_reply_to_status_id.as_deref() == Some(&current_id)) {
-                    thread.push(reply.clone());
-                    current_id = reply.id_str.clone();
-                }
-                threads.push(thread);
-            }
-        }
-        threads
+        // Use the enhanced reply thread processing that treats ALL replies as threads
+        crate::processing::reply_threads::process_reply_threads(&tweets_map.values().cloned().collect::<Vec<_>>(), &screen_name_clone)
     }).await?;
 
     println!("👥 Tactical units formed. We have {} specialized teams ready for action.", threads.len());
@@ -138,11 +127,38 @@ pub async fn process_tweets(
     Ok(())
 }
 
+/// Simple tweet processing function for testing
+pub async fn process_tweets_simple(tweets: &[TweetWrapper], _screen_name: &str) -> Result<Vec<Thread>> {
+    let mut threads = Vec::new();
+    
+    for tweet_wrapper in tweets {
+        let tweet = &tweet_wrapper.tweet;
+        
+        // Skip retweets
+        if tweet.retweeted || tweet.full_text.starts_with("RT @") {
+            continue;
+        }
+        
+        // Create a simple thread for each tweet
+        let thread = Thread {
+            id: tweet.id_str.clone(),
+            tweets: vec![tweet.clone()],
+            tweet_count: 1,
+            favorite_count: tweet.favorite_count.parse().unwrap_or(0),
+            retweet_count: tweet.retweet_count.parse().unwrap_or(0),
+        };
+        
+        threads.push(thread);
+    }
+    
+    Ok(threads)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use tempfile::tempdir;
-    use tokio::sync::mpsc as async_mpsc;
+
 
     #[tokio::test]
     async fn test_tweet_processing_structure() {
@@ -298,31 +314,4 @@ mod tests {
         assert_eq!(tweets.len(), 1);
         assert_eq!(tweets[0].id_str, "2");
     }
-}
-
-/// Simple tweet processing function for testing
-pub async fn process_tweets_simple(tweets: &[TweetWrapper], screen_name: &str) -> Result<Vec<Thread>> {
-    let mut threads = Vec::new();
-    
-    for tweet_wrapper in tweets {
-        let tweet = &tweet_wrapper.tweet;
-        
-        // Skip retweets
-        if tweet.retweeted || tweet.full_text.starts_with("RT @") {
-            continue;
-        }
-        
-        // Create a simple thread for each tweet
-        let thread = Thread {
-            id: tweet.id_str.clone(),
-            tweets: vec![tweet.clone()],
-            tweet_count: 1,
-            favorite_count: tweet.favorite_count.parse().unwrap_or(0),
-            retweet_count: tweet.retweet_count.parse().unwrap_or(0),
-        };
-        
-        threads.push(thread);
-    }
-    
-    Ok(threads)
 }

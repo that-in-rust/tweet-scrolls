@@ -5,11 +5,8 @@
 
 use anyhow::{Context, Result};
 use chrono::Utc;
-use mimalloc::MiMalloc;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::path::Path;
 use tokio::fs as async_fs;
-use tokio::sync::mpsc as async_mpsc;
 use tweet_scrolls::processing::data_structures::Thread;
 
 // Import our modular components
@@ -35,6 +32,18 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 /// 4. Optionally performs relationship intelligence analysis
 #[tokio::main]
 async fn main() -> Result<()> {
+    use std::env;
+    use tweet_scrolls::cli::{CliConfig, process_with_cli};
+    
+    // Check if CLI arguments were provided
+    let args: Vec<String> = env::args().collect();
+    if args.len() > 1 {
+        // CLI mode - process with provided folder path
+        let config = CliConfig::from_args()?;
+        return process_with_cli(config).await;
+    }
+    
+    // Interactive mode - original behavior
     println!("🌟 Welcome to Tweet-Scrolls: Twitter Archive Intelligence System");
     
     // Get user input with clear examples
@@ -42,7 +51,7 @@ async fn main() -> Result<()> {
     println!("💡 Files we'll analyze:");
     println!("   • tweets.js (required - contains all your tweets)");
     println!("   • direct-messages.js (optional - contains your DM conversations)");
-    println!("");
+    println!();
     
     let input_file = get_input_file()?;
     let screen_name = "user".to_string(); // Generic name, we'll extract real handle from data if needed
@@ -51,7 +60,7 @@ async fn main() -> Result<()> {
     println!("🕶️ Current working directory: {}", std::env::current_dir()?.display());
 
     // Validate input file exists
-    if !async_fs::metadata(&input_file).await.is_ok() {
+    if async_fs::metadata(&input_file).await.is_err() {
         anyhow::bail!("❌ File does not exist: {}", input_file);
     }
 
@@ -78,12 +87,17 @@ async fn main() -> Result<()> {
         }
     }
 
-    // Automatically run relationship intelligence analysis
-    println!("🔍 Initiating Relationship Intelligence Analysis...");
-    if let Err(e) = perform_relationship_analysis(&screen_name, &output_dir, timestamp).await {
-        eprintln!("🚨 Relationship Analysis Failed: {}", e);
-    } else {
-        println!("🎯 Relationship intelligence analysis completed successfully!");
+    // Ask user if they want to run relationship intelligence analysis
+    println!("\nWould you like to generate relationship intelligence profiles? (y/n)");
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).unwrap();
+    if input.trim().to_lowercase() == "y" {
+        println!("\nInitiating Relationship Intelligence Analysis...");
+        if let Err(e) = perform_relationship_analysis(&screen_name, &output_dir, timestamp).await {
+            eprintln!("🚨 Relationship Analysis Failed: {}", e);
+        } else {
+            println!("🎯 Relationship intelligence analysis completed successfully!");
+        }
     }
 
     println!("✨ All operations completed successfully! Check the output directory for results.");
@@ -207,13 +221,6 @@ async fn perform_relationship_analysis(
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_main_function_structure() {
-        // Test that the main function compiles and has the right structure
-        // This is a compile-time test - if it compiles, the structure is correct
-        assert!(true);
-    }
-
     #[tokio::test]
     async fn test_relationship_analysis_function() {
         use tempfile::tempdir;
@@ -224,13 +231,5 @@ mod tests {
         // Test that the relationship analysis function can be called
         let result = perform_relationship_analysis("testuser", output_dir, 1234567890).await;
         assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_global_allocator() {
-        // Test that the global allocator is set up correctly
-        // This is mainly a compile-time check
-        let _test_vec = vec![1, 2, 3, 4, 5];
-        assert!(true);
     }
 }

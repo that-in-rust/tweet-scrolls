@@ -144,7 +144,7 @@ pub fn analyze_temporal_patterns(
     
     while current_time <= end_time {
         time_buckets.push((current_time, 0));
-        current_time = current_time + time_interval;
+        current_time += time_interval;
     }
     
     // Count events in each time bucket

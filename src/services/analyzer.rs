@@ -48,7 +48,7 @@ impl InteractionAnalyzer {
     pub fn analyze_response_times(&self) -> HashMap<String, Duration> {
         let mut response_times = HashMap::new();
         
-        for (_conv_id, messages) in &self.conversations {
+        for messages in self.conversations.values() {
             if messages.len() < 2 {
                 continue;
             }
@@ -83,7 +83,7 @@ impl InteractionAnalyzer {
         events.sort_by_key(|e| e.timestamp);
         
         let mut start_time = None;
-        let mut count_in_window = 0;
+        let mut count_in_window;
         let mut window_start = 0;
         
         for (i, event) in events.iter().enumerate() {

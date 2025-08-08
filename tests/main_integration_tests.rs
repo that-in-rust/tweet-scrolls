@@ -1,11 +1,97 @@
 use tweet_scrolls::relationship::file_generation::LLMFileGenerator;
-use tweet_scrolls::relationship::analyzer::RelationshipAnalyzer;
+
 use tweet_scrolls::models::profile::UserProfile;
 use tweet_scrolls::models::interaction::InteractionEvent;
 use tweet_scrolls::relationship::anonymization::hash_user_id;
 use std::collections::HashMap;
 use tempfile::tempdir;
 use anyhow::Result;
+
+/// Main orchestration function for relationship analysis
+pub async fn analyze_relationships(
+    output_path: &str,
+    screen_name: &str,
+    timestamp: u64,
+    profiles: &[UserProfile],
+    interactions: &[InteractionEvent]
+) -> Result<()> {
+    // Validate output directory
+    validate_output_directory(output_path)?;
+    
+    // Create file generator
+    let generator = LLMFileGenerator::new(output_path, screen_name, timestamp);
+    
+    // Generate all files
+    generator.generate_all_files(profiles, interactions)?;
+    
+    println!("✅ Relationship intelligence analysis complete!");
+    println!("📁 Files generated in: {}/relationship_profiles_{}_{}", 
+             output_path, screen_name, timestamp);
+    println!("📊 {}", format_relationship_summary(profiles));
+    
+    Ok(())
+}
+
+/// Format a summary of the relationship analysis
+pub fn format_relationship_summary(profiles: &[UserProfile]) -> String {
+    let total_interactions: u32 = profiles.iter().map(|p| p.total_interactions).sum();
+    let avg_interactions = if profiles.is_empty() { 
+        0.0 
+    } else { 
+        total_interactions as f64 / profiles.len() as f64 
+    };
+    
+    // Find most active relationship
+    let most_active = profiles.iter()
+        .max_by_key(|p| p.total_interactions)
+        .map(|p| format!("{} ({} interactions)", p.user_hash, p.total_interactions))
+        .unwrap_or_else(|| "None".to_string());
+    
+    // Calculate activity distribution
+    let high_activity = profiles.iter().filter(|p| p.total_interactions > 20).count();
+    let medium_activity = profiles.iter().filter(|p| p.total_interactions >= 10 && p.total_interactions <= 20).count();
+    let low_activity = profiles.iter().filter(|p| p.total_interactions < 10).count();
+    
+    format!(
+        "=== Relationship Analysis Summary ===\n\
+        Total Relationships Analyzed: {}\n\
+        Total Interactions: {}\n\
+        Average Interactions per Relationship: {:.1}\n\
+        Most Active Relationship: {}\n\
+        \n\
+        Activity Distribution:\n\
+        - High Activity (>20): {} relationships\n\
+        - Medium Activity (10-20): {} relationships\n\
+        - Low Activity (<10): {} relationships",
+        profiles.len(),
+        total_interactions,
+        avg_interactions,
+        most_active,
+        high_activity,
+        medium_activity,
+        low_activity
+    )
+}
+
+/// Validate that the output directory is accessible
+pub fn validate_output_directory(path: &str) -> Result<()> {
+    use std::fs;
+    use anyhow::Context;
+    
+    // Try to create the directory to test permissions
+    fs::create_dir_all(path)
+        .with_context(|| format!("Cannot create output directory: {}", path))?;
+    
+    // Test write permissions by creating a temporary file
+    let test_file = std::path::Path::new(path).join(".test_write_permissions");
+    fs::write(&test_file, "test")
+        .with_context(|| format!("Cannot write to output directory: {}", path))?;
+    
+    // Clean up test file
+    let _ = fs::remove_file(test_file);
+    
+    Ok(())
+}
 
 #[cfg(test)]
 mod main_integration_tests {
@@ -148,90 +234,4 @@ mod main_integration_tests {
         // Invalid directory should fail
         assert!(validate_output_directory("/invalid/path").is_err());
     }
-}
-
-/// Main orchestration function for relationship analysis
-pub async fn analyze_relationships(
-    output_path: &str,
-    screen_name: &str,
-    timestamp: u64,
-    profiles: &[UserProfile],
-    interactions: &[InteractionEvent]
-) -> Result<()> {
-    // Validate output directory
-    validate_output_directory(output_path)?;
-    
-    // Create file generator
-    let generator = LLMFileGenerator::new(output_path, screen_name, timestamp);
-    
-    // Generate all files
-    generator.generate_all_files(profiles, interactions)?;
-    
-    println!("✅ Relationship intelligence analysis complete!");
-    println!("📁 Files generated in: {}/relationship_profiles_{}_{}", 
-             output_path, screen_name, timestamp);
-    println!("📊 {}", format_relationship_summary(profiles));
-    
-    Ok(())
-}
-
-/// Format a summary of the relationship analysis
-pub fn format_relationship_summary(profiles: &[UserProfile]) -> String {
-    let total_interactions: u32 = profiles.iter().map(|p| p.total_interactions).sum();
-    let avg_interactions = if profiles.is_empty() { 
-        0.0 
-    } else { 
-        total_interactions as f64 / profiles.len() as f64 
-    };
-    
-    // Find most active relationship
-    let most_active = profiles.iter()
-        .max_by_key(|p| p.total_interactions)
-        .map(|p| format!("{} ({} interactions)", p.user_hash, p.total_interactions))
-        .unwrap_or_else(|| "None".to_string());
-    
-    // Calculate activity distribution
-    let high_activity = profiles.iter().filter(|p| p.total_interactions > 20).count();
-    let medium_activity = profiles.iter().filter(|p| p.total_interactions >= 10 && p.total_interactions <= 20).count();
-    let low_activity = profiles.iter().filter(|p| p.total_interactions < 10).count();
-    
-    format!(
-        "=== Relationship Analysis Summary ===\n\
-        Total Relationships Analyzed: {}\n\
-        Total Interactions: {}\n\
-        Average Interactions per Relationship: {:.1}\n\
-        Most Active Relationship: {}\n\
-        \n\
-        Activity Distribution:\n\
-        - High Activity (>20): {} relationships\n\
-        - Medium Activity (10-20): {} relationships\n\
-        - Low Activity (<10): {} relationships",
-        profiles.len(),
-        total_interactions,
-        avg_interactions,
-        most_active,
-        high_activity,
-        medium_activity,
-        low_activity
-    )
-}
-
-/// Validate that the output directory is accessible
-pub fn validate_output_directory(path: &str) -> Result<()> {
-    use std::fs;
-    use anyhow::Context;
-    
-    // Try to create the directory to test permissions
-    fs::create_dir_all(path)
-        .with_context(|| format!("Cannot create output directory: {}", path))?;
-    
-    // Test write permissions by creating a temporary file
-    let test_file = std::path::Path::new(path).join(".test_write_permissions");
-    fs::write(&test_file, "test")
-        .with_context(|| format!("Cannot write to output directory: {}", path))?;
-    
-    // Clean up test file
-    let _ = fs::remove_file(test_file);
-    
-    Ok(())
 }

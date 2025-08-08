@@ -15,6 +15,7 @@ use super::communication::{CommunicationFrequency, calculate_communication_frequ
 /// Relationship analyzer for extracting and analyzing user interactions
 #[derive(Debug)]
 pub struct RelationshipAnalyzer {
+    /// Map of anonymized user IDs to their profile data
     pub profiles: HashMap<String, UserProfile>,
 }
 
@@ -247,7 +248,7 @@ mod tests {
 
     // Helper function to create sample DM data for testing
     fn create_sample_dm_data() -> Vec<DmWrapper> {
-        use crate::models::direct_message::{DmReaction, DmUrl, DmEditHistory};
+        
         
         vec![
             DmWrapper {
@@ -487,8 +488,8 @@ mod tests {
         let analysis = analyzer.analyze_timeline(&timeline);
         
         // Should have basic analysis structure
-        assert!(analysis.total_interactions >= 0);
-        assert!(analysis.unique_participants >= 0);
+        assert!(analysis.total_interactions > 0);
+        assert!(analysis.unique_participants > 0);
         assert!(!analysis.patterns.is_empty() || analysis.patterns.is_empty()); // Either way is valid
     }
 }

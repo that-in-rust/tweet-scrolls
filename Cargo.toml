@@ -15,6 +15,10 @@ path = "src/bin/test_dm_headers.rs"
 name = "tweet_coverage_analysis"
 path = "src/bin/tweet_coverage_analysis.rs"
 
+[[bin]]
+name = "file-splitter"
+path = "src/bin/file_splitter.rs"
+
 [dependencies]
 anyhow = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
@@ -27,6 +31,8 @@ mimalloc = "0.1"
 blake3 = "1.5"
 regex = "1.10"
 indicatif = "0.17"
+# CLI argument parsing (temporarily commented out due to network issues)
+# clap = { version = "4.0", features = ["derive"] }
 
 [dev-dependencies]
 tempfile = "3.0"

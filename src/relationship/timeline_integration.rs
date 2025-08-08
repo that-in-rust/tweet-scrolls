@@ -137,7 +137,7 @@ pub fn calculate_interaction_density(events: &[InteractionEvent], window_hours: 
     let start_time = sorted_events.first().unwrap().timestamp;
     let end_time = sorted_events.last().unwrap().timestamp;
     
-    let window_duration = chrono::Duration::hours(window_hours);
+    let _window_duration = chrono::Duration::hours(window_hours);
     let total_duration = end_time - start_time;
     // +1 so that both the starting and ending window are represented
     let num_windows = ((total_duration.num_hours() / window_hours) + 1).max(1) as usize;

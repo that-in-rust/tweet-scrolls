@@ -12,6 +12,7 @@ pub mod analyzer;
 pub mod anonymization;
 pub mod communication;
 pub mod timeline_integration;
+/// File generation for relationship intelligence output
 pub mod file_generation;
 pub mod text_generators;
 pub mod timeline_text;

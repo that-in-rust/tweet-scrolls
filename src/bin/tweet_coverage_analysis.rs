@@ -60,7 +60,7 @@ fn extract_json_content(content: &str) -> Result<String> {
 
 fn create_threads_from_tweets(all_tweets: &[TweetWrapper], screen_name: &str) -> Result<Vec<Thread>> {
     // Extract tweets and filter out retweets and RT @ tweets
-    let mut tweets: Vec<Tweet> = all_tweets.iter()
+    let tweets: Vec<Tweet> = all_tweets.iter()
         .map(|tw| tw.tweet.clone())
         .filter(|tweet| !tweet.retweeted && !tweet.full_text.starts_with("RT @"))
         .collect();
@@ -225,7 +225,7 @@ fn analyze_threading_quality(all_tweets: &[TweetWrapper], threads: &[tweet_scrol
     let mut reply_chains_found = 0;
     
     // Build a map of tweet ID to tweet for quick lookup
-    let tweet_map: HashMap<String, &Tweet> = all_tweets.iter()
+    let _tweet_map: HashMap<String, &Tweet> = all_tweets.iter()
         .map(|tw| (tw.tweet.id_str.clone(), &tw.tweet))
         .collect();
     

@@ -4,7 +4,7 @@
 use anyhow::Result;
 use serde_json::from_str;
 use std::fs;
-use tweet_scrolls::processing::data_structures::{TweetWrapper, Tweet};
+use tweet_scrolls::processing::data_structures::TweetWrapper;
 
 fn main() -> Result<()> {
     println!("🧪 Testing Twitter Export Parsing with Realistic Data");

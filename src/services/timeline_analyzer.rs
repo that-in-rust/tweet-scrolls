@@ -2,9 +2,10 @@
 
 use chrono::{DateTime, Datelike, Timelike, Utc, Weekday};
 use std::collections::{HashMap, HashSet};
-use crate::models::interaction::InteractionType;
 
-use crate::models::interaction::InteractionEvent;
+
+#[allow(unused_imports)]
+use crate::models::interaction::{InteractionEvent, InteractionType};
 use crate::models::statistics::calculate_percentiles;
 use crate::models::timeline::{
     ResponseTimeStats, TimelineAnalysis, TimelineDensity, TimelinePattern,
@@ -180,8 +181,8 @@ impl TimelineAnalyzer {
     /// Calculates density metrics for the timeline
     fn calculate_density(
         &self,
-        start_time: &DateTime<Utc>,
-        end_time: &DateTime<Utc>,
+        _start_time: &DateTime<Utc>,
+        _end_time: &DateTime<Utc>,
         total_days: f64,
     ) -> TimelineDensity {
         let mut hour_counts = [0; 24];

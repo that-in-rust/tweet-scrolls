@@ -1,7 +1,5 @@
 use tweet_scrolls::processing::data_structures::{Tweet, TweetEntities, Thread};
 use tweet_scrolls::utils::enhanced_csv_writer::{EnhancedCsvWriter, CsvRecord};
-use tweet_scrolls::models::tweet_classification::TweetType;
-use std::path::PathBuf;
 use tempfile::tempdir;
 
 #[cfg(test)]

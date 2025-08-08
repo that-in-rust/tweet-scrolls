@@ -12,6 +12,7 @@ use tokio::fs as async_fs;
 use crate::models::direct_message::DmWrapper;
 use crate::relationship::RelationshipAnalyzer;
 use super::data_structures::ProcessedConversation;
+use super::dm_threads::{convert_dms_to_threads, format_dm_thread_as_text};
 
 /// Processes direct messages from a JSON file and generates analysis
 /// 
@@ -67,9 +68,9 @@ pub async fn process_dm_file(dm_file: &str, screen_name: &str, output_dir: &Path
     println!("💬 Processing {} conversations...", dm_wrappers.len());
     
     let mut conversations: Vec<ProcessedConversation> = dm_wrappers
-        .into_iter()
+        .iter()
         .map(|wrapper| {
-            let conv = wrapper.dm_conversation;
+            let conv = &wrapper.dm_conversation;
             let valid_messages: Vec<_> = conv.messages
                 .iter()
                 .filter(|msg| msg.message_create.is_some())
@@ -84,7 +85,7 @@ pub async fn process_dm_file(dm_file: &str, screen_name: &str, output_dir: &Path
                 .and_then(|mc| mc.created_at.clone());
             
             ProcessedConversation {
-                conversation_id: conv.conversation_id,
+                conversation_id: conv.conversation_id.clone(),
                 message_count: valid_messages.len() as u32,
                 participants: vec![], // Will be filled properly later
                 first_message_date: first_date,
@@ -101,6 +102,9 @@ pub async fn process_dm_file(dm_file: &str, screen_name: &str, output_dir: &Path
     
     // Write conversations CSV file
     write_dm_csv(&conversations, screen_name, timestamp, output_dir).await?;
+    
+    // Convert DMs to threads and write thread files
+    write_dm_threads(&dm_wrappers, screen_name, timestamp, output_dir).await?;
     
     // Write timeline analysis to a separate CSV
     write_timeline_analysis_csv(&timeline_analysis, screen_name, timestamp, output_dir).await?;
@@ -127,7 +131,7 @@ async fn write_dm_csv(
     let mut csv_writer = CsvWriterLib::from_writer(BufWriter::new(csv_file));
     
     // Write conversations data
-    csv_writer.write_record(&[
+    csv_writer.write_record([
         "Conversation ID",
         "Message Count", 
         "First Message Date",
@@ -135,7 +139,7 @@ async fn write_dm_csv(
     ])?;
     
     for conv in conversations {
-        csv_writer.write_record(&[
+        csv_writer.write_record([
             &conv.conversation_id,
             &conv.message_count.to_string(),
             conv.first_message_date.as_deref().unwrap_or("N/A"),
@@ -144,6 +148,75 @@ async fn write_dm_csv(
     }
     csv_writer.flush()?;
     
+    Ok(())
+}
+
+/// Writes DM threads to CSV and TXT files
+async fn write_dm_threads(
+    dm_wrappers: &[DmWrapper],
+    screen_name: &str,
+    timestamp: i64,
+    output_dir: &Path
+) -> Result<()> {
+    // Convert DMs to threads
+    let dm_threads = convert_dms_to_threads(dm_wrappers);
+    
+    if dm_threads.is_empty() {
+        println!("⚠️  No DM threads to write");
+        return Ok(());
+    }
+    
+    // Write CSV file
+    let csv_path = output_dir.join(format!("dm_threads_{}_{}.csv", screen_name, timestamp));
+    let csv_file = File::create(&csv_path)?;
+    let mut csv_writer = CsvWriterLib::from_writer(BufWriter::new(csv_file));
+    
+    // Write CSV headers
+    csv_writer.write_record([
+        "Thread ID",
+        "Participant Count",
+        "Message Count",
+        "Duration (seconds)",
+        "Avg Response Time (seconds)",
+        "Start Time",
+        "End Time",
+        "Participants"
+    ])?;
+    
+    // Write thread data
+    for thread in &dm_threads {
+        csv_writer.write_record([
+            &thread.thread_id,
+            &thread.participant_count.to_string(),
+            &thread.metadata.message_count.to_string(),
+            &thread.metadata.duration_seconds.map_or("N/A".to_string(), |d| d.to_string()),
+            &thread.metadata.avg_response_time.map_or("N/A".to_string(), |t| format!("{:.2}", t)),
+            &thread.metadata.start_time.map_or("N/A".to_string(), |t| t.format("%Y-%m-%d %H:%M:%S").to_string()),
+            &thread.metadata.end_time.map_or("N/A".to_string(), |t| t.format("%Y-%m-%d %H:%M:%S").to_string()),
+            &thread.participants.join(";")
+        ])?;
+    }
+    csv_writer.flush()?;
+    
+    // Write TXT file
+    let txt_path = output_dir.join(format!("dm_threads_{}_{}.txt", screen_name, timestamp));
+    let mut txt_content = String::new();
+    
+    txt_content.push_str("📱 DIRECT MESSAGE THREADS\n");
+    txt_content.push_str(&format!("{}\n\n", "=".repeat(50)));
+    txt_content.push_str(&format!("Total threads: {}\n", dm_threads.len()));
+    txt_content.push_str(&format!("Generated: {}\n", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S")));
+    txt_content.push_str(&format!("{}\n\n", "=".repeat(50)));
+    
+    for thread in &dm_threads {
+        txt_content.push_str(&format_dm_thread_as_text(thread));
+        txt_content.push('\n');
+    }
+    
+    async_fs::write(&txt_path, txt_content).await
+        .context("Failed to write DM threads TXT file")?;
+    
+    println!("📝 Generated {} DM thread files", dm_threads.len());
     Ok(())
 }
 
@@ -159,7 +232,7 @@ async fn write_timeline_analysis_csv(
     let mut timeline_writer = CsvWriterLib::from_writer(BufWriter::new(timeline_csv_file));
     
     // Write timeline analysis header
-    timeline_writer.write_record(&[
+    timeline_writer.write_record([
         "Analysis Type",
         "Total Interactions",
         "Unique Participants",
@@ -172,7 +245,7 @@ async fn write_timeline_analysis_csv(
     ])?;
     
     // Write timeline analysis data
-    timeline_writer.write_record(&[
+    timeline_writer.write_record([
         "Summary",
         &timeline_analysis.total_interactions.to_string(),
         &timeline_analysis.unique_participants.to_string(),
@@ -269,6 +342,45 @@ async fn write_dm_summary(
     async_fs::write(&summary_path, summary_content).await.context("Failed to write DM summary file")?;
     
     Ok(())
+}
+
+/// Simple DM processing function for testing
+pub async fn process_dm_conversations(dm_data: &[DmWrapper], _screen_name: &str) -> Result<Vec<ProcessedConversation>> {
+    let mut conversations = Vec::new();
+    
+    for dm_wrapper in dm_data {
+        let conversation = &dm_wrapper.dm_conversation;
+        
+        // Skip empty conversations
+        if conversation.messages.is_empty() {
+            continue;
+        }
+        
+        // Extract participants from conversation ID
+        let participants: Vec<String> = conversation.conversation_id
+            .split('-')
+            .map(|s| s.to_string())
+            .collect();
+        
+        let processed = ProcessedConversation {
+            conversation_id: conversation.conversation_id.clone(),
+            message_count: conversation.messages.len() as u32,
+            participants,
+            first_message_date: conversation.messages.first()
+                .and_then(|m| m.message_create.as_ref())
+                .and_then(|mc| mc.created_at.clone()),
+            last_message_date: conversation.messages.last()
+                .and_then(|m| m.message_create.as_ref())
+                .and_then(|mc| mc.created_at.clone()),
+        };
+        
+        conversations.push(processed);
+    }
+    
+    // Sort by message count (descending)
+    conversations.sort_by(|a, b| b.message_count.cmp(&a.message_count));
+    
+    Ok(conversations)
 }
 
 #[cfg(test)]
@@ -380,43 +492,4 @@ mod tests {
         // Should handle empty files gracefully
         assert!(result.is_ok());
     }
-}
-
-/// Simple DM processing function for testing
-pub async fn process_dm_conversations(dm_data: &[DmWrapper], screen_name: &str) -> Result<Vec<ProcessedConversation>> {
-    let mut conversations = Vec::new();
-    
-    for dm_wrapper in dm_data {
-        let conversation = &dm_wrapper.dm_conversation;
-        
-        // Skip empty conversations
-        if conversation.messages.is_empty() {
-            continue;
-        }
-        
-        // Extract participants from conversation ID
-        let participants: Vec<String> = conversation.conversation_id
-            .split('-')
-            .map(|s| s.to_string())
-            .collect();
-        
-        let processed = ProcessedConversation {
-            conversation_id: conversation.conversation_id.clone(),
-            message_count: conversation.messages.len() as u32,
-            participants,
-            first_message_date: conversation.messages.first()
-                .and_then(|m| m.message_create.as_ref())
-                .and_then(|mc| mc.created_at.clone()),
-            last_message_date: conversation.messages.last()
-                .and_then(|m| m.message_create.as_ref())
-                .and_then(|mc| mc.created_at.clone()),
-        };
-        
-        conversations.push(processed);
-    }
-    
-    // Sort by message count (descending)
-    conversations.sort_by(|a, b| b.message_count.cmp(&a.message_count));
-    
-    Ok(conversations)
 }

@@ -10,9 +10,15 @@ pub enum TimelinePattern {
     /// Regular daily activity pattern
     DailyRhythm,
     /// Activity during specific hours of the day
-    TimeOfDayPattern { active_hours: Vec<u32> },
+    TimeOfDayPattern { 
+        /// The hours of the day (0-23) when activity is highest
+        active_hours: Vec<u32> 
+    },
     /// Weekly activity pattern (e.g., more active on weekends)
-    WeeklyPattern { active_days: Vec<chrono::Weekday> },
+    WeeklyPattern { 
+        /// The days of the week when activity is highest
+        active_days: Vec<chrono::Weekday> 
+    },
     /// Bursty activity pattern (periods of high activity followed by low activity)
     BurstyActivity,
     /// No discernible pattern
