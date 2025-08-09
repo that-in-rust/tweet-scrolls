@@ -10,7 +10,7 @@ use std::collections::HashMap;
 pub struct InteractionAnalyzer {
     /// All processed events
     events: Vec<InteractionEvent>,
-    /// User statistics by user hash
+    /// User statistics by user id
     user_stats: HashMap<String, InteractionStats>,
     /// Conversation threads by ID
     conversations: HashMap<String, Vec<InteractionEvent>>,
@@ -28,11 +28,13 @@ impl InteractionAnalyzer {
 
     /// Adds an event to the analyzer
     pub fn add_event(&mut self, event: InteractionEvent) {
+        // DEBUG: Log field access attempt
+        eprintln!("DEBUG: Attempting to access user_id field from InteractionEvent");
+        eprintln!("DEBUG: Available fields in InteractionEvent: id, timestamp, interaction_type, user_id, content, metadata");
         // Update user stats
-        let user_hash = event.user_hash.clone();
-        let user_stats = self.user_stats.entry(user_hash).or_default();
+        let user_id = event.user_id.clone();
+        let user_stats = self.user_stats.entry(user_id).or_default();
         user_stats.add_interaction(&event.interaction_type.to_string(), event.timestamp);
-        
         // Add to conversations if it's part of one
         if let Some(conv_id) = event.metadata.get("conversation_id") {
             self.conversations
@@ -40,7 +42,6 @@ impl InteractionAnalyzer {
                 .or_default()
                 .push(event.clone());
         }
-        
         self.events.push(event);
     }
 
@@ -120,11 +121,11 @@ impl InteractionAnalyzer {
     }
 
     /// Gets statistics for a specific user
-    pub fn get_user_stats(&self, user_hash: &str) -> Option<&InteractionStats> {
-        self.user_stats.get(user_hash)
+    pub fn get_user_stats(&self, user_id: &str) -> Option<&InteractionStats> {
+        self.user_stats.get(user_id)
     }
 
-    /// Gets all user hashes that have been analyzed
+    /// Gets all user ids that have been analyzed
     pub fn get_analyzed_users(&self) -> Vec<String> {
         self.user_stats.keys().cloned().collect()
     }
@@ -140,7 +141,7 @@ mod tests {
             id: id.to_string(),
             timestamp,
             interaction_type: crate::models::interaction::InteractionType::DmSent,
-            user_hash: user.to_string(),
+            user_id: user.to_string(),
             content: "Test message".to_string(),
             metadata: [
                 ("conversation_id".to_string(), "conv1".to_string()),

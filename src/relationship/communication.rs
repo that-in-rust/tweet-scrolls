@@ -115,7 +115,7 @@ pub fn calculate_average_response_time(messages: &[DmMessage]) -> std::time::Dur
 
 /// Calculate communication frequency metrics for a user
 pub fn calculate_communication_frequency(
-    user_hash: &str,
+    user_id: &str,
     dm_data: &[crate::models::direct_message::DmWrapper]
 ) -> CommunicationFrequency {
     let mut sent_per_month: HashMap<(i32, u32), u32> = HashMap::new();
@@ -133,7 +133,7 @@ pub fn calculate_communication_frequency(
 
                         // Check if this user sent or received the message
                         if let Some(sender_id) = &create.sender_id {
-                            if sender_id == user_hash {
+                            if sender_id == user_id {
                                 *sent_per_month.entry(month_key).or_insert(0) += 1;
                                 total_sent += 1;
                             } else {

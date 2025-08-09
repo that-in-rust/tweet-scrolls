@@ -15,7 +15,7 @@ pub fn generate_user_profile_text(profile: &UserProfile, timeline: &[Interaction
     // Header section
     output.push_str("USER RELATIONSHIP PROFILE\n");
     output.push_str("========================\n");
-    output.push_str(&format!("User ID Hash: {}\n", profile.user_hash));
+    output.push_str(&format!("User ID: {}\n", profile.user_id));
     
     add_temporal_info(&mut output, profile);
     add_communication_stats(&mut output, profile);

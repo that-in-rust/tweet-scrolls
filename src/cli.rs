@@ -116,20 +116,23 @@ fn print_usage() {
 pub async fn process_with_cli(config: CliConfig) -> Result<()> {
     use crate::main_process::main_process_twitter_archive;
     use chrono::Utc;
-    
+    use crate::utils::file_splitter::{split_file, SplitConfig};
+
     println!("🚀 Processing Twitter archive from: {}", config.archive_folder.display());
-    
+
     let tweets_file = config.tweets_file();
     let dms_file = config.dms_file();
     let dm_headers_file = config.dm_headers_file();
-    
+
+    // Input file splitting removed: Only output TXT files will be split after processing
+
     // Use a generic screen name since we're in non-interactive mode
     let screen_name = "user";
     let timestamp = Utc::now().timestamp();
     let output_dir = config.get_output_dir(screen_name, timestamp);
-    
+
     println!("📁 Output directory: {}", output_dir.display());
-    
+
     // Process the archive
     main_process_twitter_archive(
         tweets_file.to_str().unwrap(),
@@ -139,9 +142,45 @@ pub async fn process_with_cli(config: CliConfig) -> Result<()> {
         screen_name,
         timestamp,
     ).await?;
-    
+
     println!("✅ Processing complete!");
-    
+
+    // --- New requirement: Split large output TXT files (>1MB) after processing ---
+    use std::fs;
+    use std::ffi::OsStr;
+    println!("🔎 Scanning output directory for large TXT files...");
+    let txt_files = fs::read_dir(&output_dir)?
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let path = entry.path();
+            if path.extension() == Some(OsStr::new("txt")) {
+                let metadata = fs::metadata(&path).ok()?;
+                if metadata.len() > 1024 * 1024 {
+                    Some((path, metadata.len()))
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+
+    for (path, size) in txt_files {
+        println!("[FileSplitter] Splitting large TXT file: {} ({} bytes)", path.display(), size);
+        let split_config = SplitConfig {
+            input_path: path.clone(),
+            output_dir: Some(path.parent().unwrap().to_path_buf()),
+            chunk_size: 1024 * 1024, // 1MB
+            prefix: None,
+            digits: 3,
+        };
+        match split_file(&split_config) {
+            Ok(result) => println!("[FileSplitter] {}", result),
+            Err(e) => println!("[FileSplitter] Error splitting file {}: {}", path.display(), e),
+        }
+    }
+
     Ok(())
 }
 

@@ -9,13 +9,12 @@ use crate::models::{
 };
 use crate::services::timeline_analyzer::TimelineAnalyzer;
 
-use super::anonymization::hash_user_id;
 use super::communication::{CommunicationFrequency, calculate_communication_frequency};
 
 /// Relationship analyzer for extracting and analyzing user interactions
 #[derive(Debug)]
 pub struct RelationshipAnalyzer {
-    /// Map of anonymized user IDs to their profile data
+    /// Map of user IDs to their profile data
     pub profiles: HashMap<String, UserProfile>,
 }
 
@@ -41,7 +40,7 @@ impl RelationshipAnalyzer {
     /// 
     /// # Returns
     /// 
-    /// A HashSet of anonymized user IDs
+    /// A HashSet of user IDs
     /// 
     /// # Examples
     /// 
@@ -63,8 +62,8 @@ impl RelationshipAnalyzer {
                 let user1 = &conversation_id[..dash_pos];
                 let user2 = &conversation_id[dash_pos + 1..];
                 
-                users.insert(hash_user_id(user1));
-                users.insert(hash_user_id(user2));
+                users.insert(user1.to_string());
+                users.insert(user2.to_string());
             }
         }
         
@@ -79,19 +78,19 @@ impl RelationshipAnalyzer {
     /// 
     /// # Returns
     /// 
-    /// A HashSet of anonymized user IDs
+    /// A HashSet of user IDs
     pub fn extract_users_from_tweets(&self, tweets: &[crate::processing::data_structures::Tweet]) -> HashSet<String> {
         let mut users = HashSet::new();
         
         for tweet in tweets {
             // Add user being replied to
             if let Some(reply_to_user) = &tweet.in_reply_to_screen_name {
-                users.insert(hash_user_id(reply_to_user));
+                users.insert(reply_to_user.clone());
             }
             
             // Add all mentioned users
             for mention in &tweet.entities.user_mentions {
-                users.insert(hash_user_id(&mention.screen_name));
+                users.insert(mention.screen_name.clone());
             }
         }
         
@@ -101,17 +100,17 @@ impl RelationshipAnalyzer {
     /// Create a basic user profile from conversation data
     /// 
     /// # Arguments
-    /// 
-    /// * `user_hash` - The anonymized user ID
+    ///
+    /// * `user_id` - The user ID
     /// * `dm_data` - DM conversation data
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A UserProfile with basic statistics
-    pub fn create_user_profile(&self, user_hash: &str, dm_data: &[DmWrapper]) -> UserProfile {
-        let (first_interaction, last_interaction) = self.find_interaction_timespan(user_hash, dm_data);
+    pub fn create_user_profile(&self, user_id: &str, dm_data: &[DmWrapper]) -> UserProfile {
+        let (first_interaction, last_interaction) = self.find_interaction_timespan(user_id, dm_data);
         
-        let mut profile = UserProfile::new(user_hash);
+        let mut profile = UserProfile::new(user_id);
         
         // Set interaction timestamps
         profile.first_interaction = first_interaction;
@@ -124,10 +123,10 @@ impl RelationshipAnalyzer {
             
             // Check if this user is part of this conversation
             if let Some(dash_pos) = conversation_id.find('-') {
-                let user1_hash = hash_user_id(&conversation_id[..dash_pos]);
-                let user2_hash = hash_user_id(&conversation_id[dash_pos + 1..]);
+                let user1_id = &conversation_id[..dash_pos];
+                let user2_id = &conversation_id[dash_pos + 1..];
                 
-                if user_hash == user1_hash || user_hash == user2_hash {
+                if user_id == user1_id || user_id == user2_id {
                     // Count messages in this conversation
                     for message in &wrapper.dm_conversation.messages {
                         if message.message_create.is_some() {
@@ -145,7 +144,7 @@ impl RelationshipAnalyzer {
     }
 
     /// Find the first and last interaction timestamps for a user
-    fn find_interaction_timespan(&self, user_hash: &str, dm_data: &[DmWrapper]) -> (Option<DateTime<Utc>>, Option<DateTime<Utc>>) {
+    fn find_interaction_timespan(&self, user_id: &str, dm_data: &[DmWrapper]) -> (Option<DateTime<Utc>>, Option<DateTime<Utc>>) {
         let mut timestamps = Vec::new();
         
         for wrapper in dm_data {
@@ -153,10 +152,10 @@ impl RelationshipAnalyzer {
             
             // Check if this user is part of this conversation
             if let Some(dash_pos) = conversation_id.find('-') {
-                let user1_hash = hash_user_id(&conversation_id[..dash_pos]);
-                let user2_hash = hash_user_id(&conversation_id[dash_pos + 1..]);
+                let user1_id = &conversation_id[..dash_pos];
+                let user2_id = &conversation_id[dash_pos + 1..];
                 
-                if user_hash == user1_hash || user_hash == user2_hash {
+                if user_id == user1_id || user_id == user2_id {
                     // Collect timestamps from this conversation
                     for message in &wrapper.dm_conversation.messages {
                         if let Some(message_create) = &message.message_create {
@@ -215,15 +214,15 @@ impl RelationshipAnalyzer {
     /// Calculate communication frequency for a user
     /// 
     /// # Arguments
-    /// 
-    /// * `user_hash` - The anonymized user ID
+    ///
+    /// * `user_id` - The user ID
     /// * `dm_data` - DM conversation data
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// CommunicationFrequency analysis for the user
-    pub fn calculate_communication_frequency(&self, user_hash: &str, dm_data: &[DmWrapper]) -> CommunicationFrequency {
-        calculate_communication_frequency(user_hash, dm_data)
+    pub fn calculate_communication_frequency(&self, user_id: &str, dm_data: &[DmWrapper]) -> CommunicationFrequency {
+        calculate_communication_frequency(user_id, dm_data)
     }
 
     /// Analyze the timeline of interactions
@@ -387,9 +386,9 @@ mod tests {
         
         // Should extract 3 unique users: "3382", "1132151165410455552", "9876543210"
         assert_eq!(users.len(), 3);
-        assert!(users.contains(&hash_user_id("3382")));
-        assert!(users.contains(&hash_user_id("1132151165410455552")));
-        assert!(users.contains(&hash_user_id("9876543210")));
+        assert!(users.contains("3382"));
+        assert!(users.contains("1132151165410455552"));
+        assert!(users.contains("9876543210"));
     }
 
     #[test]
@@ -401,8 +400,8 @@ mod tests {
         
         // Should extract 2 unique users from in_reply_to_screen_name: "alice", "bob"
         assert_eq!(users.len(), 2);
-        assert!(users.contains(&hash_user_id("alice")));
-        assert!(users.contains(&hash_user_id("bob")));
+        assert!(users.contains("alice"));
+        assert!(users.contains("bob"));
     }
 
     #[test]
@@ -442,19 +441,19 @@ mod tests {
         
         // Should only extract from the valid conversation ID
         assert_eq!(users.len(), 2);
-        assert!(users.contains(&hash_user_id("user1")));
-        assert!(users.contains(&hash_user_id("user2")));
+        assert!(users.contains("user1"));
+        assert!(users.contains("user2"));
     }
 
     #[test]
     fn test_create_basic_user_profile() {
         let sample_data = create_sample_dm_data();
         let analyzer = RelationshipAnalyzer::new();
-        let user_hash = hash_user_id("3382");
+        let user_id = "3382".to_string();
         
-        let profile = analyzer.create_user_profile(&user_hash, &sample_data);
+        let profile = analyzer.create_user_profile(&user_id, &sample_data);
         
-        assert_eq!(profile.user_hash, user_hash);
+        assert_eq!(profile.user_id, user_id);
         assert!(profile.total_interactions > 0);
         assert!(profile.first_interaction.is_some());
         assert!(profile.last_interaction.is_some());

@@ -1,7 +1,6 @@
 use tweet_scrolls::relationship::file_generation::{LLMFileGenerator, generate_profile_text, generate_timeline_text, generate_llm_analysis_prompts};
 use tweet_scrolls::models::profile::UserProfile;
 use tweet_scrolls::models::interaction::InteractionEvent;
-use tweet_scrolls::relationship::anonymization::hash_user_id;
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use tempfile::tempdir;
@@ -11,8 +10,8 @@ mod file_generation_tests {
     use super::*;
 
     fn create_sample_user_profile() -> UserProfile {
-        let user_hash = hash_user_id("1132151165410455552");
-        let mut profile = UserProfile::new(user_hash);
+    let user_id = "1132151165410455552".to_string();
+    let mut profile = UserProfile::new(user_id.clone());
         profile.total_interactions = 25;
         profile.first_interaction = Some("2023-01-01T10:00:00Z".parse::<DateTime<Utc>>().unwrap());
         profile.last_interaction = Some("2023-12-31T15:30:00Z".parse::<DateTime<Utc>>().unwrap());
@@ -34,14 +33,14 @@ mod file_generation_tests {
                 "msg_001",
                 "2023-06-15T10:30:00Z".parse::<DateTime<Utc>>().unwrap(),
                 tweet_scrolls::models::interaction::InteractionType::DmSent,
-                hash_user_id("user1"),
+                "user1".to_string(),
                 "Hey, how are you doing?"
             ).with_metadata("conversation_id", "user1-user2"),
             InteractionEvent::new(
                 "msg_002", 
                 "2023-06-15T14:45:00Z".parse::<DateTime<Utc>>().unwrap(),
                 tweet_scrolls::models::interaction::InteractionType::DmReceived,
-                hash_user_id("user2"),
+                "user2".to_string(),
                 "I'm doing great! Thanks for asking."
             ).with_metadata("conversation_id", "user1-user2"),
         ]
@@ -102,10 +101,11 @@ mod file_generation_tests {
         assert!(result.is_ok());
         
         // Verify file was created
-        let expected_filename = format!("user_{}_profile.txt", &profile.user_hash[..8]);
+        let expected_filename = format!("user_{}_profile.txt", &profile.user_id);
         let file_path = std::path::Path::new(output_path)
             .join("relationship_profiles_testuser_1234567890")
             .join(&expected_filename);
+        println!("Checking file path: {:?}", file_path);
         assert!(file_path.exists());
     }
 

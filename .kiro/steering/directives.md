@@ -35,7 +35,6 @@
   - tokio 1.0 (Async runtime)
   - csv 1.1 (CSV generation)
   - mimalloc 0.1 (Memory optimization)
-  - blake3 1.5 (User ID anonymization)
   - regex 1.10 (Pattern matching)
   - indicatif 0.17 (Progress indicators)
 
@@ -58,21 +57,18 @@
 - **Complete Cycles**: 4 full TDD cycles completed
 
 ### 📈 Performance Considerations
-- **Memory Management**: mimalloc high-performance allocator
-- **Async I/O**: Non-blocking file operations
-- **Streaming Processing**: Handles large files efficiently
-- **Buffered Writing**: Optimized CSV and text generation
 
-### 🔍 JSON Schema Handling
+ File splitting must be applied to large input files before processing to ensure memory efficiency and parallelism.
+ After main processing, the CLI must automatically scan output folders and apply file-splitter to any output TXT files over 1MB, splitting them into chunks for easier review and sharing. This ensures output management and PRD compliance.
 - **JavaScript Prefix**: Remove `window.YTD.*.part0 = [` prefix
 - **Field Naming**: Use `#[serde(rename = "camelCaseName")]` for Twitter fields
 - **Optional Fields**: Handle with `Option<T>` types
 - **Streaming**: Use `serde_json::Deserializer` for large files
 
 ### 🔐 Privacy Features
-- **Blake3 Anonymization**: Consistent, secure user ID hashing
+- **Removed**: Blake3 Anonymization (no longer used for user ID hashing)
+- **Sender Labels**: DM threads now use sender labels like 'A:' and 'B:' for clarity
 - **Local Processing**: No data leaves user's machine
-- **Hash-Based Filenames**: No personal identifiers in file system
 - **Content Masking**: Optional sensitive content protection
 
 ### 🚀 Output Generation

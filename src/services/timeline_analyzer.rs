@@ -57,7 +57,7 @@ impl TimelineAnalyzer {
     fn calculate_unique_participants(&self) -> usize {
         let mut participants = HashSet::new();
         for event in &self.events {
-            participants.insert(&event.user_hash);
+            participants.insert(&event.user_id);
         }
         participants.len()
     }
@@ -334,7 +334,7 @@ mod tests {
             id: "test_event".to_string(),
             timestamp,
             interaction_type: InteractionType::DmSent,
-            user_hash: user_id.to_string(),
+            user_id: user_id.to_string(),
             content: "Test message".to_string(),
             metadata,
         }

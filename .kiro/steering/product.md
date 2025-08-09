@@ -1,3 +1,8 @@
+## Requirements Update: DM Thread Output Transparency
+
+DM thread text and data outputs must include actual user IDs (or screen names) for each participant in the conversation. This ensures full transparency and traceability in exported data, rather than using anonymized labels (A, B, etc.).
+
+This requirement applies to all future releases and should be reflected in both text and CSV exports of DM threads.
 # Product Overview
 
 Tweet-Scrolls is a Rust CLI tool that processes Twitter JSON archive files to extract and organize tweet threads into readable formats with timeline analysis.
@@ -46,7 +51,7 @@ Tweet-Scrolls is a Rust CLI tool that processes Twitter JSON archive files to ex
 - **Async Processing**: Buffered I/O with streaming for large files
 - **Memory Efficient**: Handles 50K+ tweets and 3K+ DM conversations
 - **Local Processing**: 100% local, no data leaves your machine
-- **Blake3 Anonymization**: User IDs hashed for privacy protection
+- **Blake3 Anonymization**: Only user IDs are used and anonymized for privacy protection (no user hash field is stored or referenced)
 
 ## Target Users
 - Twitter power users wanting to organize their archives

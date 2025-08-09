@@ -1,3 +1,22 @@
+### Relative Timestamps in DM Thread Outputs
+
+DM thread text and data outputs must include relative timestamps for each message, showing how many minutes, hours, or days have passed since the previous message in the thread. This provides context for the pacing and timing of conversations, making the output more informative and useful for analysis.
+
+Example:
+```
+1754755789: Hello! [at 2025-08-09 10:00]
+1234567890: Hi there! (5 minutes later) [at 2025-08-09 10:05]
+1754755789: How are you? (2 hours later) [at 2025-08-09 12:05]
+```
+# Key Output Files
+
+After processing, you will find these main files in each output folder:
+- `threads_user_<id>.csv`: Structured tweet threads (size varies by user)
+- `dm_threads_user_<id>.csv`: Structured DM threads with relative timestamps
+- `timeline_analysis_user_<id>.csv`: Timeline and activity analysis
+
+Output TXT files over 1MB are automatically split into chunks for easier upload to LLMs
+
 # Tweet-Scrolls 📜
 *Transform Twitter archives into organized conversation intelligence*
 
@@ -69,6 +88,8 @@ cargo build --release
 ```bash
 # Basic usage (recommended)
 ./target/release/tweet-scrolls /path/to/archive
+
+./target/release/tweet-scrolls /home/amuldotexe/Desktop/GitHub202410/tweet-scrolls/REALDATA
 
 # Custom output location
 ./target/release/tweet-scrolls /path/to/archive /path/to/output
@@ -161,12 +182,14 @@ flowchart TD
 
 ## Privacy & Security
 
-**All processing happens locally** - your data never leaves your machine. User IDs are anonymized using Blake3 hashing for privacy protection.
+**All processing happens locally** - your data never leaves your machine.
+
+### DM Thread Output: Participant Labels vs. User IDs
+By default, DM thread text outputs use simple participant labels (A, B, etc.) for readability. This makes conversations easy to follow, especially for two-person chats. If you require full transparency, you can configure the tool to output actual user IDs or screen names instead of labels. This option is available for advanced users who want to see real identifiers in their DM thread exports.
 
 ### Built-in Safety Features
 - Local processing only (no network connections)
 - Automatic git protection for private data
-- Blake3 anonymization for user identifiers
 - Comprehensive .gitignore protection
 
 ```bash
@@ -199,7 +222,7 @@ cargo clippy
 
 ## File Splitter Utility
 
-Split large archive files into manageable chunks:
+Split large archive files into manageable chunks, and automatically split output TXT files over 1MB after main processing:
 
 ```bash
 cargo build --release --bin file-splitter
@@ -207,6 +230,9 @@ cargo build --release --bin file-splitter
 
 # Custom options
 ./target/release/file-splitter -i tweets.js -s 5M -o chunks/
+
+# Automatic post-processing (new requirement)
+# After main processing, Tweet-Scrolls will automatically scan output folders and apply file-splitter to any output TXT files over 1MB, splitting them into manageable chunks for easier review and sharing.
 ```
 
 ## License

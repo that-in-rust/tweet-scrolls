@@ -7,8 +7,8 @@ use std::collections::HashMap;
 /// Represents a user's profile with interaction statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserProfile {
-    /// Hashed user ID
-    pub user_hash: String,
+    /// User ID
+    pub user_id: String,
     /// Total number of interactions
     pub total_interactions: u32,
     /// First interaction timestamp
@@ -23,9 +23,9 @@ pub struct UserProfile {
 
 impl UserProfile {
     /// Creates a new empty user profile
-    pub fn new(user_hash: impl Into<String>) -> Self {
+    pub fn new(user_id: impl Into<String>) -> Self {
         Self {
-            user_hash: user_hash.into(),
+            user_id: user_id.into(),
             total_interactions: 0,
             first_interaction: None,
             last_interaction: None,

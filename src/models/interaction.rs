@@ -58,8 +58,8 @@ pub struct InteractionEvent {
     pub timestamp: DateTime<Utc>,
     /// Type of interaction
     pub interaction_type: InteractionType,
-    /// Hash of the user who initiated the interaction
-    pub user_hash: String,
+    /// User who initiated the interaction
+    pub user_id: String,
     /// Content of the interaction (truncated if needed)
     pub content: String,
     /// Additional metadata as key-value pairs
@@ -72,14 +72,14 @@ impl InteractionEvent {
         id: impl Into<String>,
         timestamp: DateTime<Utc>,
         interaction_type: InteractionType,
-        user_hash: impl Into<String>,
+        user_id: impl Into<String>,
         content: impl Into<String>,
     ) -> Self {
         Self {
             id: id.into(),
             timestamp,
             interaction_type,
-            user_hash: user_hash.into(),
+            user_id: user_id.into(),
             content: content.into(),
             metadata: std::collections::HashMap::new(),
         }
@@ -128,7 +128,7 @@ impl InteractionEvent {
             id: id.clone(),
             timestamp,
             interaction_type: InteractionType::DmSent, // Default to sent, adjust if needed
-            user_hash: participants[0].clone(), // Assuming first participant is the sender
+            user_id: participants[0].clone(), // Assuming first participant is the sender
             content: message_create.text.as_deref().unwrap_or("").to_string(),
             metadata,
         })
@@ -142,7 +142,7 @@ pub struct ConversationThread {
     pub id: String,
     /// List of interaction events in chronological order
     pub events: Vec<InteractionEvent>,
-    /// Participants in the conversation (hashed user IDs)
+    /// Participants in the conversation
     pub participants: Vec<String>,
     /// Timestamp of the first message
     pub started_at: DateTime<Utc>,
@@ -172,8 +172,8 @@ impl ConversationThread {
         self.last_activity = event.timestamp;
 
         // Add participant if new
-        if !self.participants.contains(&event.user_hash) {
-            self.participants.push(event.user_hash.clone());
+        if !self.participants.contains(&event.user_id) {
+            self.participants.push(event.user_id.clone());
         }
 
         self.events.push(event);

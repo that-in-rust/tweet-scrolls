@@ -20,7 +20,6 @@ pub mod prompts_generator;
 
 // Re-export commonly used types
 pub use analyzer::RelationshipAnalyzer;
-pub use anonymization::hash_user_id;
 pub use communication::{CommunicationFrequency, calculate_response_times, calculate_average_response_time};
 pub use timeline_integration::{analyze_hourly_activity, find_most_active_day};
 pub use file_generation::LLMFileGenerator;

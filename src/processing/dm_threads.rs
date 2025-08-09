@@ -5,7 +5,6 @@ use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 
 use crate::models::direct_message::{DmWrapper, DmConversation};
-use crate::relationship::anonymization::hash_user_id;
 
 /// Represents a DM thread with structured conversation flow
 #[derive(Debug, Clone)]
@@ -14,7 +13,7 @@ pub struct DmThread {
     pub thread_id: String,
     /// Number of participants in the conversation
     pub participant_count: usize,
-    /// Hashed participant IDs for privacy
+    /// Participant IDs
     pub participants: Vec<String>,
     /// Messages in chronological order
     pub messages: Vec<DmThreadMessage>,
@@ -27,10 +26,10 @@ pub struct DmThread {
 pub struct DmThreadMessage {
     /// Message ID
     pub id: String,
-    /// Sender's hashed ID
-    pub sender_hash: String,
-    /// Recipient's hashed ID (if available)
-    pub recipient_hash: Option<String>,
+    /// Sender's ID
+    pub sender_id: String,
+    /// Recipient's ID (if available)
+    pub recipient_id: Option<String>,
     /// Message text content
     pub text: String,
     /// Timestamp of the message
@@ -79,10 +78,10 @@ fn convert_single_dm_to_thread(conversation: DmConversation) -> Option<DmThread>
             for msg in &valid_messages {
                 if let Some(mc) = &msg.message_create {
                     if let Some(sender_id) = &mc.sender_id {
-                        participants.insert(hash_user_id(sender_id), true);
+                        participants.insert(sender_id.clone(), true);
                     }
                     if let Some(recipient) = &mc.recipient_id {
-                        participants.insert(hash_user_id(recipient), true);
+                        participants.insert(recipient.clone(), true);
                     }
                 }
             }
@@ -109,8 +108,8 @@ fn convert_single_dm_to_thread(conversation: DmConversation) -> Option<DmThread>
             
             let thread_msg = DmThreadMessage {
                 id: mc.id.clone().unwrap_or_default(),
-                sender_hash: mc.sender_id.as_ref().map(|id| hash_user_id(id)).unwrap_or_default(),
-                recipient_hash: mc.recipient_id.as_ref().map(|id| hash_user_id(id)),
+                sender_id: mc.sender_id.clone().unwrap_or_default(),
+                recipient_id: mc.recipient_id.clone(),
                 text: mc.text.clone().unwrap_or_default(),
                 timestamp,
                 position: idx + 1,
@@ -204,41 +203,31 @@ pub fn format_dm_thread_as_text(thread: &DmThread) -> String {
         // Calculate relative timing
         let timing_info = if let (Some(current_ts), Some(prev_ts)) = (msg.timestamp, previous_timestamp) {
             let duration = current_ts.signed_duration_since(prev_ts);
-            
             if duration.num_days() > 0 {
-                format!("({} days later)", duration.num_days())
+                format!(" ({} days later)", duration.num_days())
             } else if duration.num_hours() > 0 {
-                format!("({} hours later)", duration.num_hours())
+                format!(" ({} hours later)", duration.num_hours())
             } else if duration.num_minutes() > 5 {
-                format!("({} minutes later)", duration.num_minutes())
+                format!(" ({} minutes later)", duration.num_minutes())
             } else {
                 String::new() // Don't show timing for quick responses
             }
         } else {
             String::new()
         };
-        
-        // Simple sender identification (A/B instead of hashes)
-        let sender_label = if i == 0 || thread.messages.get(i-1).map(|prev| &prev.sender_hash) != Some(&msg.sender_hash) {
-            // Show sender only when it changes
-            let sender_id = if msg.sender_hash == thread.participants[0] { "A" } else { "B" };
-            if timing_info.is_empty() {
-                format!("{}:", sender_id)
-            } else {
-                format!("{} {}:", sender_id, timing_info)
-            }
-        } else {
-            // Same sender continuing
-            if timing_info.is_empty() {
-                "  ".to_string() // Just indent
-            } else {
-                format!("  {}", timing_info)
-            }
+
+        // Use actual sender user ID
+        let sender_label = format!("User {}:", msg.sender_id);
+
+        // Show timestamp (absolute and relative)
+        let timestamp_str = match msg.timestamp {
+            Some(ts) => format!(" [{} UTC]{}", ts.format("%Y-%m-%d %H:%M:%S"), timing_info),
+            None => String::new(),
         };
-        
-        // Clean message format focused on content
-        output.push_str(&format!("{} {}\n", sender_label, msg.text));
-        
+
+        // Output format: user_id: [timestamp][relative] message
+        output.push_str(&format!("{}{} {}\n", sender_label, timestamp_str, msg.text));
+
         previous_timestamp = msg.timestamp;
     }
     

@@ -58,16 +58,20 @@ impl LLMFileGenerator {
     /// Generate individual user profile file
     pub fn generate_individual_profile_file(&self, profile: &UserProfile) -> Result<()> {
         // Create output directory if it doesn't exist
+        println!("Creating output directory: {}", &self.output_dir);
         fs::create_dir_all(&self.output_dir)
             .context("Failed to create output directory")?;
             
-        let filename = format!("user_{}_profile.txt", &profile.user_hash[..8]);
-        let file_path = Path::new(&self.output_dir).join(filename);
+        let filename = format!("user_{}_profile.txt", &profile.user_id);
+        let file_path = Path::new(&self.output_dir).join(&filename);
+        println!("Constructed file path: {:?}", file_path);
         
         let content = generate_profile_text(profile);
+        println!("Generated content: {}", content);
         
-        fs::write(file_path, content)
+        fs::write(&file_path, content)
             .context("Failed to write individual profile file")?;
+        println!("Successfully wrote file: {:?}", file_path);
         
         Ok(())
     }
@@ -121,7 +125,7 @@ impl LLMFileGenerator {
 pub fn generate_profile_text(profile: &UserProfile) -> String {
     let mut output = String::new();
     writeln!(&mut output, "# USER RELATIONSHIP PROFILE").unwrap();
-    writeln!(&mut output, "\n## User Profile: {}", profile.user_hash).unwrap();
+    writeln!(&mut output, "\n## User Profile: {}", profile.user_id).unwrap();
     writeln!(&mut output, "\n## Interaction Summary").unwrap();
     writeln!(&mut output, "- Total Interactions: {}", profile.total_interactions).unwrap();
     writeln!(&mut output, "\n## COMMUNICATION STATISTICS").unwrap();
@@ -150,7 +154,7 @@ pub fn generate_timeline_text(interactions: &[InteractionEvent]) -> String {
             interaction.interaction_type
         ));
         
-        content.push_str(&format!("- User: {}\n", &interaction.user_hash[..8]));
+        content.push_str(&format!("- User: {}\n", &interaction.user_id));
         content.push_str(&format!("- ID: {}\n", interaction.id));
         
         if !interaction.content.is_empty() {
@@ -235,8 +239,8 @@ When analyzing the relationship data, consider these dimensions:
 
 ## PRIVACY CONSIDERATIONS
 
-All user identifiers have been anonymized using Blake3 hashing. When discussing insights:
-- Refer to users by their hash prefixes (first 8 characters)
+User identifiers are preserved in their original form. When discussing insights:
+- Refer to users by their original identifiers
 - Focus on patterns rather than specific content
 - Maintain confidentiality of communication details
 

@@ -27,12 +27,11 @@ serde_json = "1.0"
 tokio = { version = "1.0", features = ["full"] }
 csv = "1.1"
 mimalloc = "0.1"
-# New dependencies for relationship intelligence
-blake3 = "1.5"
-regex = "1.10"
+# Progress bar for CLI
 indicatif = "0.17"
 # CLI argument parsing (temporarily commented out due to network issues)
 # clap = { version = "4.0", features = ["derive"] }
+atty = "0.2"
 
 [dev-dependencies]
 tempfile = "3.0"

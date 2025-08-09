@@ -1,0 +1,2 @@
+# Add this to your Cargo.toml under [dependencies]
+atty = "0.2"

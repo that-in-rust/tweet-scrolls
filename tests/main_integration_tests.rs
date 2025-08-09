@@ -2,7 +2,6 @@ use tweet_scrolls::relationship::file_generation::LLMFileGenerator;
 
 use tweet_scrolls::models::profile::UserProfile;
 use tweet_scrolls::models::interaction::InteractionEvent;
-use tweet_scrolls::relationship::anonymization::hash_user_id;
 use std::collections::HashMap;
 use tempfile::tempdir;
 use anyhow::Result;
@@ -44,7 +43,7 @@ pub fn format_relationship_summary(profiles: &[UserProfile]) -> String {
     // Find most active relationship
     let most_active = profiles.iter()
         .max_by_key(|p| p.total_interactions)
-        .map(|p| format!("{} ({} interactions)", p.user_hash, p.total_interactions))
+        .map(|p| format!("{} ({} interactions)", p.user_id, p.total_interactions))
         .unwrap_or_else(|| "None".to_string());
     
     // Calculate activity distribution
@@ -98,7 +97,7 @@ mod main_integration_tests {
     use super::*;
 
     fn create_sample_profiles() -> Vec<UserProfile> {
-        let mut profile1 = UserProfile::new(hash_user_id("user1"));
+        let mut profile1 = UserProfile::new("user1".to_string());
         profile1.total_interactions = 15;
         profile1.first_interaction = Some("2023-01-01T10:00:00Z".parse().unwrap());
         profile1.last_interaction = Some("2023-12-31T15:30:00Z".parse().unwrap());
@@ -107,7 +106,7 @@ mod main_integration_tests {
             ("dm_received".to_string(), 7),
         ]);
 
-        let mut profile2 = UserProfile::new(hash_user_id("user2"));
+        let mut profile2 = UserProfile::new("user2".to_string());
         profile2.total_interactions = 23;
         profile2.first_interaction = Some("2023-02-15T14:20:00Z".parse().unwrap());
         profile2.last_interaction = Some("2023-11-20T09:45:00Z".parse().unwrap());
@@ -126,14 +125,14 @@ mod main_integration_tests {
                 "interaction_001",
                 "2023-06-15T10:30:00Z".parse().unwrap(),
                 tweet_scrolls::models::interaction::InteractionType::DmSent,
-                hash_user_id("user1"),
+                "user1".to_string(),
                 "Hey, how's the project going?"
             ),
             InteractionEvent::new(
                 "interaction_002",
                 "2023-06-15T14:45:00Z".parse().unwrap(),
                 tweet_scrolls::models::interaction::InteractionType::DmReceived,
-                hash_user_id("user2"),
+                "user2".to_string(),
                 "Going well! Just finished the first milestone."
             ),
         ]
@@ -169,7 +168,7 @@ mod main_integration_tests {
         
         // Verify individual profile files were created
         for profile in &profiles {
-            let profile_filename = format!("user_{}_profile.txt", &profile.user_hash[..8]);
+            let profile_filename = format!("user_{}_profile.txt", &profile.user_id[..8]);
             assert!(std::path::Path::new(&expected_dir).join(profile_filename).exists());
         }
     }

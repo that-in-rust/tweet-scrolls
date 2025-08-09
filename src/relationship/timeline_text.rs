@@ -64,7 +64,7 @@ fn add_recent_activity(output: &mut String, timeline: &[InteractionEvent]) {
         output.push_str(&format!("{} | {:?} | User: {} | {}\n",
                                event.timestamp.format("%Y-%m-%d %H:%M"),
                                event.interaction_type,
-                               &event.user_hash[..8],
+                               &event.user_id[..8],
                                content_preview));
     }
 }
@@ -95,15 +95,15 @@ mod tests {
                 "event1",
                 chrono::Utc.with_ymd_and_hms(2023, 6, 15, 14, 30, 0).unwrap(),
                 InteractionType::DmSent,
-                "test_user_hash_123456",
+                "test_user_id_123456",
                 "Test message content"
             ),
             InteractionEvent::new(
                 "event2", 
                 chrono::Utc.with_ymd_and_hms(2023, 6, 16, 9, 15, 0).unwrap(),
                 InteractionType::DmReceived,
-                "test_user_hash_123456",
-                "Reply message content"
+                "test_user_id_123456",
+                "Reply message content (including author replies)"
             ),
         ]
     }

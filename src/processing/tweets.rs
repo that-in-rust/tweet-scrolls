@@ -44,7 +44,7 @@ pub async fn process_tweets(
     println!("🇺🇸 Captain America is assembling the strike team (filtering tweets)...");
     let mut tweets: Vec<Tweet> = tweets.into_iter().map(|tw| tw.tweet).collect();
     let initial_tweet_count = tweets.len();
-    tweets.retain(|tweet| !tweet.retweeted && (tweet.in_reply_to_screen_name.as_deref() == Some(&screen_name) || tweet.in_reply_to_screen_name.is_none()));
+    tweets.retain(|tweet| !tweet.retweeted);
     let filtered_tweet_count = initial_tweet_count - tweets.len();
     println!("👥 Strike team assembled. {} members are on standby, {} are joining the mission.", filtered_tweet_count, tweets.len());
 

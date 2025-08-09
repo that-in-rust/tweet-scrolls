@@ -227,9 +227,9 @@ async fn test_relationship_analysis_pipeline() {
     assert!(!tweet_users.is_empty(), "Should extract users from tweet data");
     
     // Test profile creation
-    for user_hash in &dm_users {
-        let profile = analyzer.create_user_profile(user_hash, &dm_data);
-        assert_eq!(profile.user_hash, *user_hash, "Profile should match user hash");
+    for user_id in &dm_users {
+        let profile = analyzer.create_user_profile(user_id, &dm_data);
+        assert_eq!(profile.user_id, *user_id, "Profile should match user id");
         assert!(profile.total_interactions > 0, "Profile should have interactions");
     }
     
@@ -298,7 +298,7 @@ async fn test_file_output_generation() {
         
         // Verify tweet type is one of the expected values
         assert!(
-            ["Original", "ReplyToUser", "ReplyToOthers"].contains(&tweet_type),
+            ["Original", "ReplyToUser", "ReplyToOthers", "AuthorReply"].contains(&tweet_type),
             "Unexpected tweet type: {}",
             tweet_type
         );
@@ -347,23 +347,6 @@ fn test_retweet_filtering() {
         assert!(!tweet.tweet.retweeted, "Filtered tweets should not be retweets");
         assert!(!tweet.tweet.full_text.starts_with("RT @"), "Should not start with RT @");
     }
-}
-
-#[test]
-fn test_user_anonymization_consistency() {
-    let user_id = "1132151165410455552";
-    
-    // Test that anonymization is consistent
-    let hash1 = relationship::hash_user_id(user_id);
-    let hash2 = relationship::hash_user_id(user_id);
-    
-    assert_eq!(hash1, hash2, "Hash should be consistent for same input");
-    assert_ne!(hash1, user_id, "Hash should be different from original");
-    assert_eq!(hash1.len(), 64, "Blake3 hash should be 64 characters");
-    
-    // Test different inputs produce different hashes
-    let different_hash = relationship::hash_user_id("different_user");
-    assert_ne!(hash1, different_hash, "Different inputs should produce different hashes");
 }
 
 #[test]
@@ -417,8 +400,8 @@ fn test_large_data_structures() {
 // User Profile Tests
 #[test]
 fn test_user_profile_creation() {
-    let profile = models::profile::UserProfile::new("test_user_hash");
-    assert_eq!(profile.user_hash, "test_user_hash");
+    let profile = models::profile::UserProfile::new("test_user_id");
+    assert_eq!(profile.user_id, "test_user_id");
     assert_eq!(profile.total_interactions, 0);
     assert!(profile.interaction_counts.is_empty());
 }
@@ -432,22 +415,6 @@ fn test_user_profile_add_interaction() {
     
     assert_eq!(profile.total_interactions, 1);
     assert_eq!(profile.interaction_counts.get("dm_sent"), Some(&1));
-}
-
-// Anonymization Tests
-#[test]
-fn test_hash_consistency() {
-    let user_id = "test_user_123";
-    let hash1 = relationship::hash_user_id(user_id);
-    let hash2 = relationship::hash_user_id(user_id);
-    assert_eq!(hash1, hash2);
-}
-
-#[test]
-fn test_hash_uniqueness() {
-    let hash1 = relationship::hash_user_id("user1");
-    let hash2 = relationship::hash_user_id("user2");
-    assert_ne!(hash1, hash2);
 }
 
 // Communication Tests
@@ -500,7 +467,7 @@ async fn test_create_directory_structure() {
 // Text Generation Tests
 #[test]
 fn test_generate_user_profile_text() {
-    let mut profile = models::profile::UserProfile::new("test_user_hash_123456");
+    let mut profile = models::profile::UserProfile::new("test_user_id_123456");
     profile.total_interactions = 42;
     profile.interaction_counts.insert("dm_messages".to_string(), 25);
     profile.interaction_counts.insert("dm_received".to_string(), 17);
@@ -509,7 +476,7 @@ fn test_generate_user_profile_text() {
     let profile_text = relationship::text_generators::generate_user_profile_text(&profile, &timeline);
     
     assert!(profile_text.contains("USER RELATIONSHIP PROFILE"));
-    assert!(profile_text.contains("test_user_hash_123456"));
+    assert!(profile_text.contains("test_user_id_123456"));
     assert!(profile_text.contains("Total Interactions: 42"));
     assert!(profile_text.contains("dm_messages: 25"));
 }
@@ -524,7 +491,7 @@ fn test_generate_timeline_text() {
             "event1",
             chrono::Utc.with_ymd_and_hms(2023, 6, 15, 14, 30, 0).unwrap(),
             InteractionType::DmSent,
-            "test_user_hash_123456",
+            "test_user_id_123456",
             "Test message content"
         ),
     ];

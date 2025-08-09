@@ -3,17 +3,28 @@ use chrono::DateTime;
 use anyhow::{Result, Context};
 use std::collections::{HashMap, HashSet};
 use tokio::fs;
+use std::env;
+use chrono::Utc;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     println!("🔍 Tweet Coverage & Threading Analysis");
     println!("=====================================");
-    
-    let tweets_file = "/home/amuldotexe/Desktop/GitHub202410/tweet-scrolls/private_data/REALDATA/tweets.js";
-    
+
+    // ...existing code...
+
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        eprintln!("Error: Please provide the folder path as a command-line argument.");
+        std::process::exit(1);
+    }
+
+    let folder_path = &args[1];
+    let tweets_file = format!("{}/tweets.js", folder_path);
+
     // Step 1: Load and parse all tweets
     println!("\n📂 Step 1: Loading tweets from file...");
-    let content = fs::read_to_string(tweets_file).await
+    let content = fs::read_to_string(&tweets_file).await
         .context("Failed to read tweets file")?;
     
     let json_content = extract_json_content(&content)?;
@@ -28,15 +39,64 @@ async fn main() -> Result<()> {
     
     // Step 3: Process tweets through our threading system
     println!("\n🧵 Step 3: Processing tweets through threading system...");
-    let threads = create_threads_from_tweets(&all_tweets, "amuldotexe")?;
+    let mut original_tweet_count = 0;
+    let mut reply_count = 0;
+    let mut retweet_count = 0;
+    let mut total_tweets = 0;
+
+    let threads = create_threads_from_tweets(&all_tweets, "amuldotexe")?.into_iter().map(|thread| {
+        for tweet in &thread.tweets {
+            total_tweets += 1;
+            if tweet.retweeted {
+                retweet_count += 1;
+            } else if tweet.in_reply_to_status_id_str.is_some() {
+                reply_count += 1;
+            } else {
+                original_tweet_count += 1;
+            }
+            if total_tweets % 1000 == 0 {
+                println!("[PROGRESS] Processed {} tweets: {} originals, {} replies, {} retweets", total_tweets, original_tweet_count, reply_count, retweet_count);
+            }
+        }
+        thread
+    }).collect::<Vec<_>>();
+
+    println!("\n✅ Completed processing {} threads.", threads.len());
+    println!("Final stats: Originals: {}, Replies: {}, Retweets: {}", original_tweet_count, reply_count, retweet_count);
     
     // Step 4: Coverage analysis
     println!("\n🔍 Step 4: Coverage Analysis...");
-    analyze_coverage(&all_tweets, &threads);
-    
+    let mut covered = 0;
+    let mut missed = 0;
+    for tw in &all_tweets {
+        let mut found = false;
+        for thread in &threads {
+            if thread.tweets.iter().any(|t| t.id_str == tw.tweet.id_str) {
+                found = true;
+                break;
+            }
+        }
+        if found {
+            covered += 1;
+        } else {
+            missed += 1;
+        }
+    }
+    println!("Coverage summary: Covered: {}, Missed: {}", covered, missed);
+
     // Step 5: Threading quality analysis
     println!("\n🎯 Step 5: Threading Quality Analysis...");
-    analyze_threading_quality(&all_tweets, &threads);
+    let mut total_thread_len = 0;
+    let mut max_thread_len = 0;
+    for thread in &threads {
+        let len = thread.tweets.len();
+        total_thread_len += len;
+        if len > max_thread_len {
+            max_thread_len = len;
+        }
+    }
+    let avg_thread_len = if threads.len() > 0 { total_thread_len as f64 / threads.len() as f64 } else { 0.0 };
+    println!("Threading quality summary: Total threads: {}, Avg thread length: {:.2}, Max thread length: {}", threads.len(), avg_thread_len, max_thread_len);
     
     // Step 6: Missing tweets investigation
     println!("\n🕵️ Step 6: Missing Tweets Investigation...");
