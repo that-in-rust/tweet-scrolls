@@ -1,3 +1,50 @@
+
+# Tweet-Scrolls 📜
+*Transform Twitter archives into organized conversation intelligence*
+
+**Tweet-Scrolls processes your Twitter archive files and generates structured conversation threads and timeline analysis.** Like the Marauder's Map, it reveals organized patterns in your tweet and DM conversations.
+
+## Input Files (Required)
+- `tweets.js`: Your exported tweets
+- `direct-messages.js`: Your exported direct messages
+- `headers.js`: Archive metadata
+
+## Output Files (Generated)
+- `threads_user_<id>.csv`: Structured tweet threads (size varies by user)
+- `dm_threads_user_<id>.csv`: Structured DM threads with relative timestamps
+- `timeline_analysis_user_<id>.csv`: Timeline and activity analysis
+- TXT files over 1MB are automatically split into chunks for easier upload to LLMs
+
+## Quick Start
+
+```bash
+./target/release/tweet-scrolls /home/amuldotexe/Desktop/GitHub202410/tweet-scrolls/REALDATA
+```
+
+**Required files in the archive folder:**
+- `tweets.js`
+- `direct-messages.js`
+- `headers.js`
+
+This command processes your Twitter archive and generates all output files in the appropriate output folders.
+
+---
+
+## Key Output Files
+
+After processing, you will find these main files in each output folder:
+ `threads_*.csv`: Tweet conversations with metadata
+ `dm_threads_*.csv`: DM conversations with timing
+ `timeline_analysis_*.csv`: Activity patterns and statistics
+ `results_*.txt`: Processing summary and statistics
+ `threads_*.txt`: Human-readable tweet threads
+ `dm_threads_*.txt`: Human-readable DM threads
+ `timeline_analysis_*.txt`: Activity insights and summaries
+
+
+Output TXT files over 1MB are automatically split into chunks for easier upload to LLMs
+
+
 ### Relative Timestamps in DM Thread Outputs
 
 DM thread text and data outputs must include relative timestamps for each message, showing how many minutes, hours, or days have passed since the previous message in the thread. This provides context for the pacing and timing of conversations, making the output more informative and useful for analysis.
@@ -8,19 +55,6 @@ Example:
 1234567890: Hi there! (5 minutes later) [at 2025-08-09 10:05]
 1754755789: How are you? (2 hours later) [at 2025-08-09 12:05]
 ```
-# Key Output Files
-
-After processing, you will find these main files in each output folder:
-- `threads_user_<id>.csv`: Structured tweet threads (size varies by user)
-- `dm_threads_user_<id>.csv`: Structured DM threads with relative timestamps
-- `timeline_analysis_user_<id>.csv`: Timeline and activity analysis
-
-Output TXT files over 1MB are automatically split into chunks for easier upload to LLMs
-
-# Tweet-Scrolls 📜
-*Transform Twitter archives into organized conversation intelligence*
-
-**Tweet-Scrolls processes your Twitter archive files and generates structured conversation threads and timeline analysis.** Like the Marauder's Map, it reveals organized patterns in your tweet and DM conversations.
 
 ## Input → Output
 
